@@ -1,0 +1,35 @@
+[
+  {
+    "id": "2019-s1-q01",
+    "year": 2019,
+    "semester": "S1",
+    "number": 1,
+    "marks": 2,
+    "title": "XML/JSON data representation",
+    "prompt": "This question concerns representations of data in XML/JSON.\n\n**(a)** (0.5 mark) Is the XML below well-formed? Explain.\n\n```xml\n<subject>COMP20008</subject>\n```\n",
+    "source": "2019-s1.md",
+    "tags": ["Data fundamentals", "Data, formats & databases"]
+  },
+  {
+    "id": "2019-s1-q02",
+    "year": 2019,
+    "semester": "S1",
+    "number": 2,
+    "marks": 7,
+    "title": "Temperature sensor readings, noise and outliers",
+    "prompt": "Explain the difference between readings which are noise and readings which are outliers.\n",
+    "source": "2019-s1.md",
+    "tags": ["Data preparation", "Data quality & preparation"]
+  },
+  {
+    "id": "ioa-001",
+    "year": 2026,
+    "semester": "S2",
+    "number": 1,
+    "marks": null,
+    "title": "Research question and evidence",
+    "prompt": "What is your research question, and what result would count as evidence?",
+    "source": "assignment-ioa",
+    "tags": ["Assignment questions", "Justification"]
+  }
+]

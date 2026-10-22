@@ -1,0 +1,58 @@
+{
+  "name": "question-bank-framework",
+  "version": "0.1.0",
+  "description": "Framework-style question bank: TanStack Start + TanStack Table grid, quizzes, and filter DSL. Bring your own bank.config.ts + content/. Eject any framework/ file with `qb reveal` (Vike-style).",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./core/index.ts",
+    "./core": "./core/index.ts",
+    "./framework": "./framework/index.ts",
+    "./framework/*": "./framework/*",
+    "./template/*": "./template/*"
+  },
+  "bin": {
+    "qb": "./bin/qb.js"
+  },
+  "files": [
+    "core",
+    "framework",
+    "template",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "reveal": "node ./bin/qb.js reveal",
+    "template:check": "node ./bin/qb.js check-template"
+  },
+  "peerDependencies": {
+    "@tanstack/react-router": "^1.170.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.14.19",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "^1.46.0",
+    "katex": "^0.19.0",
+    "lucide-react": "^1.57.0",
+    "radix-ui": "^1.8.1",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "tailwind-merge": "^3.7.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tanstack/react-router": "1.170.44",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.3.5"
+  }
+}
