@@ -1,6 +1,6 @@
 {
   "name": "question-bank-framework",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-style question bank: TanStack Start + TanStack Table grid, quizzes, and filter DSL. Bring your own bank.config.ts + content/. Eject any framework/ file with `qb reveal` (Vike-style).",
   "type": "module",
   "license": "MIT",
