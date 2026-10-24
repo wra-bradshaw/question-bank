@@ -220,7 +220,9 @@ function resolveFieldValue(
     if (ruleField === 'title') return question.title;
     if (ruleField === 'id') return question.id;
     if (ruleField === 'tags') return question.tags;
-    return (question[ruleField] as string | number | null | readonly string[]) ?? null;
+    // status is handled by matchesRule before reaching here. Any other id
+    // is stale (no def, not a built-in) — match nothing.
+    return null;
   }
   return def.getValue(question);
 }

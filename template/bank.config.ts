@@ -3,26 +3,20 @@
 // config-defined — the framework never hardcodes subject fields.
 
 import { defineBank } from 'question-bank-framework';
+import type { BaseQuestion } from 'question-bank-framework';
 import questionsJson from './content/questions.json' with { type: 'json' };
 import { answers } from './content/answers.ts';
-import type { BaseQuestion } from 'question-bank-framework';
 
-const questions = questionsJson as BaseQuestion[];
+/** Subject question shape. Declare every field your accessors touch. */
+export interface Comp20008Question extends BaseQuestion {
+  year: number;
+  semester: string;
+  number: number;
+  marks: number | null;
+  source: string;
+}
 
-const str = (q: BaseQuestion, key: string): string => {
-  const v = q[key];
-  return typeof v === 'string' || typeof v === 'number' ? String(v) : '';
-};
-
-const num = (q: BaseQuestion, key: string): number | null => {
-  const v = q[key];
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string' && v.trim() !== '') {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-};
+const questions = questionsJson as Comp20008Question[];
 
 export const bank = defineBank({
   site: {
@@ -36,14 +30,14 @@ export const bank = defineBank({
       id: 'year',
       label: 'Year',
       type: 'select',
-      getValue: (q) => (typeof q['year'] === 'number' ? String(q['year']) : ''),
+      getValue: (q) => String(q.year),
       searchable: true,
     },
     {
       id: 'semester',
       label: 'Semester',
       type: 'select',
-      getValue: (q) => str(q, 'semester'),
+      getValue: (q) => q.semester,
       options: [
         { value: 'S1', label: 'Semester 1' },
         { value: 'S2', label: 'Semester 2' },
@@ -53,7 +47,7 @@ export const bank = defineBank({
       id: 'exam',
       label: 'Exam',
       type: 'text',
-      getValue: (q) => `${str(q, 'year')} ${str(q, 'semester')}`.trim(),
+      getValue: (q) => `${q.year} ${q.semester}`,
       searchable: true,
       column: { header: 'Exam', width: 108, sortable: false },
     },
@@ -61,7 +55,7 @@ export const bank = defineBank({
       id: 'marks',
       label: 'Marks',
       type: 'number',
-      getValue: (q) => num(q, 'marks'),
+      getValue: (q) => q.marks,
       placeholder: 'Value',
       column: { header: 'Marks', width: 78 },
     },
