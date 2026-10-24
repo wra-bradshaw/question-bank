@@ -10,7 +10,7 @@ everything under `framework/` can be ejected into your repo and owned.
 ## Use as a template
 
 ```sh
-pnpm add github:wra-bradshaw/question-bank#v0.1.0
+pnpm add question-bank-framework
 pnpm exec qb init                 # scaffolds bank.config.ts + content/ + src/routes/
 pnpm install
 pnpm dev
@@ -92,10 +92,15 @@ pnpm install
 pnpm typecheck
 ```
 
-## Release (git dependency, no npm)
+## Release (npm + changesets)
 
 ```sh
-pnpm release [patch|minor|major]  # typechecks, bumps version, tags vX.Y.Z, pushes
+pnpm changeset        # describe your change as patch/minor/major, then push
 ```
 
-Consumers pin `github:wra-bradshaw/question-bank#vX.Y.Z` and bump with `pnpm install`.
+Pushing to `main` runs the release workflow: it opens a "Version Packages"
+PR (bump + CHANGELOG). Merge that PR and the workflow publishes to npm with
+OIDC trusted publishing and provenance attestations — no npm token needed.
+
+One-time setup: on npmjs.com, add this repo as a trusted publisher for the
+`question-bank-framework` package (no tokens or secrets to manage).
