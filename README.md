@@ -10,8 +10,8 @@ everything under `framework/` can be ejected into your repo and owned.
 ## Use as a template
 
 ```sh
-pnpm add question-bank-framework
-qb init                 # scaffolds bank.config.ts + content/ + src/routes/
+pnpm add github:wra-bradshaw/question-bank#v0.1.0
+pnpm exec qb init                 # scaffolds bank.config.ts + content/ + src/routes/
 pnpm install
 pnpm dev
 ```
@@ -91,3 +91,11 @@ defineBank({
 pnpm install
 pnpm typecheck
 ```
+
+## Release (git dependency, no npm)
+
+```sh
+pnpm release [patch|minor|major]  # typechecks, bumps version, tags vX.Y.Z, pushes
+```
+
+Consumers pin `github:wra-bradshaw/question-bank#vX.Y.Z` and bump with `pnpm install`.
