@@ -23,7 +23,9 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "release": "./scripts/release.sh",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build:bin && changeset publish",
     "reveal": "node ./bin/qb.js reveal",
     "template:check": "node ./bin/qb.js check-template",
     "build:bin": "tsc bin/qb.ts --ignoreConfig --outDir bin --target es2022 --module nodenext --moduleResolution nodenext --strict --skipLibCheck --types node && chmod +x bin/qb.js"
@@ -50,6 +52,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
     "@tanstack/react-router": "1.170.44",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
