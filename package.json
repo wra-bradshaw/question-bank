@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "release": "./scripts/release.sh",
     "reveal": "node ./bin/qb.js reveal",
     "template:check": "node ./bin/qb.js check-template"
   },
