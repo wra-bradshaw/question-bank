@@ -68,7 +68,7 @@ extension layer; `qb reveal` is the copy command.
   `convex-api.ts`), `convex/` (quizzes + questionStatuses tables).
 - `template/` — starter: `bank.config.ts` (COMP20008-like schema),
   `content/` example, `src/routes/` thin wrappers.
-- `bin/qb.js` — `list` / `reveal` / `init`.
+- `bin/qb.ts` (source; compiled to `bin/qb.js` with `pnpm build:bin`) — `list` / `reveal` / `init`.
 
 ## Schema example
 
