@@ -25,7 +25,8 @@
     "typecheck": "tsc --noEmit",
     "release": "./scripts/release.sh",
     "reveal": "node ./bin/qb.js reveal",
-    "template:check": "node ./bin/qb.js check-template"
+    "template:check": "node ./bin/qb.js check-template",
+    "build:bin": "tsc bin/qb.ts --ignoreConfig --outDir bin --target es2022 --module nodenext --moduleResolution nodenext --strict --skipLibCheck --types node && chmod +x bin/qb.js"
   },
   "peerDependencies": {
     "@tanstack/react-router": "^1.170.0",

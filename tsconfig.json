@@ -1,5 +1,5 @@
 {
-  "include": ["core/**/*.ts", "core/**/*.tsx", "framework/**/*.ts", "framework/**/*.tsx", "template/**/*.ts", "bin/**/*.js"],
+  "include": ["core/**/*.ts", "core/**/*.tsx", "framework/**/*.ts", "framework/**/*.tsx", "template/**/*.ts", "bin/**/*.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
