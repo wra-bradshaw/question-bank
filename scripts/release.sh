@@ -5,6 +5,11 @@ set -euo pipefail
 
 bump="${1:-patch}"
 
+if [[ "$bump" == "-h" || "$bump" == "--help" ]]; then
+  echo "Usage: pnpm release [patch|minor|major|<version>] (default: patch)" >&2
+  exit 0
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "error: working tree is dirty — commit or stash first" >&2
   exit 1
