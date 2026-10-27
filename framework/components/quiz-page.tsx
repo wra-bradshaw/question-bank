@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { Check, Pencil, X } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
-import type { QuestionStatus, QuizAnswer, QuizSession } from '../../core/types.ts';
+import type { QuestionStatus, QuestionStatusMap, QuizAnswer, QuizSession } from '../../core/types.ts';
 import {
   getCorrectIds,
   isAnswerCorrect,
@@ -19,11 +19,24 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { MarkdownContent } from './markdown-content';
-import { setQuestionStatus } from '../lib/question-status-storage.ts';
+import { setQuestionStatus, getQuestionStatuses } from '../lib/question-status-storage.ts';
+import { questionStatusLabels } from '../lib/question-filter.ts';
 import { getQuiz, saveQuizLocally, saveQuizProgress } from '../lib/quiz-storage.ts';
 import { cn } from '../lib/utils.ts';
 
 const optionLetter = (index: number): string => String.fromCharCode(65 + index);
+
+const questionStatusStyles: Record<QuestionStatus, string> = {
+  unanswered: 'border-gray-300 bg-gray-50 text-gray-700',
+  revisit: 'border-amber-300 bg-amber-50 text-amber-900',
+  complete: 'border-green-300 bg-green-50 text-green-800',
+};
+
+const questionStatusDotStyles: Record<QuestionStatus, string> = {
+  unanswered: 'border-gray-300 bg-white text-gray-600 hover:border-gray-500',
+  revisit: 'border-amber-400 bg-amber-100 text-amber-900 hover:border-amber-600',
+  complete: 'border-green-500 bg-green-100 text-green-900 hover:border-green-700',
+};
 
 export function QuizPage() {
   const bank = useBank();
@@ -35,6 +48,7 @@ export function QuizPage() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [statusMap, setStatusMap] = useState<QuestionStatusMap>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
   const quizQuestions = useMemo(
     () =>
@@ -52,6 +66,9 @@ export function QuizPage() {
       if (active) setSession(quiz);
     }).finally(() => {
       if (active) setLoading(false);
+    });
+    getQuestionStatuses(bank.namespace).then((statuses) => {
+      if (active) setStatusMap(statuses);
     });
     return () => {
       active = false;
@@ -123,6 +140,7 @@ export function QuizPage() {
   const updateQuestionStatus = (status: QuestionStatus) => {
     if (!activeQuestion) return;
     void setQuestionStatus(bank.namespace, activeQuestion.id, status);
+    setStatusMap((current) => ({ ...current, [activeQuestion.id]: status }));
     setShownAnswerId(null);
     setSession((current) =>
       current
@@ -172,6 +190,7 @@ export function QuizPage() {
   const isChecked = checked[activeQuestion.id] === true;
   const correctness = isChecked ? isAnswerCorrect(activeQuestion, answer) : null;
   const correctIds = getCorrectIds(activeQuestion);
+  const activeStatus: QuestionStatus = statusMap[activeQuestion.id] ?? 'unanswered';
   const score = scoreAnswers(quizQuestions, session.answers);
 
   return (
@@ -233,6 +252,35 @@ export function QuizPage() {
         )}
       </div>
 
+      {quizQuestions.length > 1 && (
+        <nav aria-label="Questions in this quiz">
+          <ol className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+            {quizQuestions.map((question, index) => {
+              const status = statusMap[question.id] ?? 'unanswered';
+              const isActive = index === activeIndex;
+              return (
+                <li key={question.id}>
+                  <button
+                    type="button"
+                    onClick={() => goToQuestion(index)}
+                    aria-label={`Go to question ${index + 1}: ${question.title} — ${questionStatusLabels[status]}${isActive ? ' (current question)' : ''}`}
+                    aria-current={isActive ? 'true' : undefined}
+                    title={`${question.title} — ${questionStatusLabels[status]}`}
+                    className={cn(
+                      'flex size-8 items-center justify-center rounded-md border text-xs font-semibold tabular-nums transition-colors',
+                      questionStatusDotStyles[status],
+                      isActive && 'ring-2 ring-gray-900 ring-offset-2',
+                    )}
+                  >
+                    {index + 1}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
+
       {session.completed && score.gradeable > 0 && (
         <section aria-label="Quiz results" className="rounded-xl border border-gray-200 bg-gray-50 p-5">
           <h2 className="m-0 text-lg font-semibold text-gray-900">
@@ -276,6 +324,9 @@ export function QuizPage() {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="m-0 flex-1 text-xl font-semibold text-gray-900">{activeQuestion.title}</h2>
           <Badge variant="outline">{questionKindLabels[kind]}</Badge>
+          <Badge variant="outline" className={questionStatusStyles[activeStatus]}>
+            {questionStatusLabels[activeStatus]}
+          </Badge>
         </div>
         <p className="mt-1 font-mono text-xs text-gray-500">{activeQuestion.id}</p>
         {activeQuestion.tags.length > 0 && (
