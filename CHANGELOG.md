@@ -1,5 +1,15 @@
 # question-bank-framework
 
+## 0.3.0
+
+### Minor Changes
+
+- [`219c6ae`](https://github.com/wra-bradshaw/question-bank/commit/219c6ae2c74fbe5acc96fe03fc92d2c18d36cf28) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Reorder, shuffle, or remove questions in an existing quiz from the quizzes page, and add selected questions to an existing quiz from the bank. Adds a `quizzes:setQuestions` Convex mutation — redeploy your Convex functions.
+
+### Patch Changes
+
+- [`219c6ae`](https://github.com/wra-bradshaw/question-bank/commit/219c6ae2c74fbe5acc96fe03fc92d2c18d36cf28) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Grid columns can no longer collapse or paint over each other: the title and tags columns absorb wide-screen slack with table-min-width floors instead of leaving dead space or shrinking to zero, long IDs and field values wrap instead of overflowing into neighbours, and banks whose tags merely duplicate dedicated fields can set `hideTagsColumn`. Downstream stylesheets must add `@source '../node_modules/question-bank-framework'` (Tailwind v4 ignores `node_modules`, so without it the app renders unstyled) and import the shared theme tokens from `question-bank-framework/framework/styles/theme.css`; `qb init` now scaffolds a stylesheet that does both.
+
 ## 0.2.0
 
 ### Minor Changes
