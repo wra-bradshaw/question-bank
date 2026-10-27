@@ -1,5 +1,11 @@
 # question-bank-framework
 
+## 0.4.0
+
+### Minor Changes
+
+- [`2c53853`](https://github.com/wra-bradshaw/question-bank/commit/2c53853a4d88c02163db36047c311a0b995de87f) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - The quiz page now shows each question's status: a numbered overview lets you jump to any question, colour-coded by unanswered/revisit/complete with the current question ringed, and the active question card carries its status badge next to the type badge.
+
 ## 0.3.0
 
 ### Minor Changes
