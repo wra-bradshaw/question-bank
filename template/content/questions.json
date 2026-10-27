@@ -1,6 +1,7 @@
 [
   {
     "id": "2019-s1-q01",
+    "kind": "written",
     "year": 2019,
     "semester": "S1",
     "number": 1,
@@ -12,6 +13,7 @@
   },
   {
     "id": "2019-s1-q02",
+    "kind": "written",
     "year": 2019,
     "semester": "S1",
     "number": 2,
@@ -23,6 +25,7 @@
   },
   {
     "id": "ioa-001",
+    "kind": "written",
     "year": 2026,
     "semester": "S2",
     "number": 1,
@@ -31,5 +34,43 @@
     "prompt": "What is your research question, and what result would count as evidence?",
     "source": "assignment-ioa",
     "tags": ["Assignment questions", "Justification"]
+  },
+  {
+    "id": "2019-s1-mc01",
+    "kind": "single",
+    "year": 2019,
+    "semester": "S1",
+    "number": 3,
+    "marks": 1,
+    "title": "Well-formed XML",
+    "prompt": "Which of the following XML documents is well-formed?",
+    "options": [
+      { "id": "a", "text": "`<subject>COMP20008<subject>`" },
+      { "id": "b", "text": "`<subject>COMP20008</subject>`" },
+      { "id": "c", "text": "`<subject><topic>COMP20008</subject></topic>`" },
+      { "id": "d", "text": "`COMP20008`" }
+    ],
+    "correctIds": ["b"],
+    "source": "2019-s1.md",
+    "tags": ["Data fundamentals", "Data, formats & databases"]
+  },
+  {
+    "id": "2019-s1-mc02",
+    "kind": "multiple",
+    "year": 2019,
+    "semester": "S1",
+    "number": 4,
+    "marks": 2,
+    "title": "Outlier handling",
+    "prompt": "A temperature sensor reports occasional extreme spikes. Which of the following are reasonable outlier-handling steps? **Select all that apply.**",
+    "options": [
+      { "id": "a", "text": "Remove spikes that are physically impossible for the sensor" },
+      { "id": "b", "text": "Delete every reading above the mean" },
+      { "id": "c", "text": "Flag spikes and investigate whether they coincide with known events" },
+      { "id": "d", "text": "Replace spikes with interpolated values and document the change" }
+    ],
+    "correctIds": ["a", "c", "d"],
+    "source": "2019-s1.md",
+    "tags": ["Data preparation", "Data quality & preparation"]
   }
 ]

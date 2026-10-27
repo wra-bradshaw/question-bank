@@ -31,8 +31,22 @@ export type {
   BankSiteConfig,
   BaseQuestion,
   DefineBankInput,
+  QuestionKind,
+  QuestionOption,
   QuestionStatus,
   QuestionStatusMap,
+  QuizAnswer,
   QuizSession,
+} from './types.ts';
+export {
+  getCorrectIds,
+  isAnswerCorrect,
+  isAnswerProvided,
+  isChoiceQuestion,
+  questionKind,
+  questionKindLabels,
+  questionKinds,
+  scoreAnswers,
+  toSelectedIds,
 } from './types.ts';
 export { questionStatuses } from './types.ts';

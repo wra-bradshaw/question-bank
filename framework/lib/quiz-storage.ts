@@ -104,6 +104,28 @@ export async function saveQuizProgress(
   });
 }
 
+// Replaces a quiz's question list (reorder / remove / append). Answers for
+// removed questions are dropped and the current position is kept on the same
+// question where possible.
+export async function setQuizQuestions(namespace: string, session: QuizSession, questionIds: string[]): Promise<QuizSession> {
+  const kept = new Set(questionIds);
+  const answers = Object.fromEntries(Object.entries(session.answers).filter(([id]) => kept.has(id)));
+  const currentId = session.questionIds[session.currentQuestion];
+  const currentIndex = currentId === undefined ? -1 : questionIds.indexOf(currentId);
+  const currentQuestion = currentIndex >= 0 ? currentIndex : Math.min(session.currentQuestion, Math.max(questionIds.length - 1, 0));
+  const updated: QuizSession = { ...session, questionIds, answers, currentQuestion };
+  if (convexClient && !updated.id.startsWith('local_')) {
+    await convexClient.mutation(convexApi.quizzes.setQuestions, {
+      quizId: updated.id,
+      questionIds,
+      answers,
+      currentQuestion,
+    });
+  }
+  saveQuizLocally(namespace, updated);
+  return updated;
+}
+
 export async function listQuizzes(namespace: string): Promise<QuizSession[]> {
   const localQuizzes = readLocalQuizzes(namespace);
   if (!convexClient) return localQuizzes;

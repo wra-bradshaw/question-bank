@@ -40,11 +40,23 @@ export const saveProgress = mutation({
   args: {
     quizId: v.id('quizzes'),
     title: v.string(),
-    answers: v.record(v.string(), v.string()),
+    answers: v.record(v.string(), v.union(v.string(), v.array(v.string()))),
     currentQuestion: v.number(),
     completed: v.boolean(),
   },
   handler: async (ctx, { quizId, title, answers, currentQuestion, completed }) => {
     await ctx.db.patch(quizId, { title, answers, currentQuestion, completed })
+  },
+})
+
+export const setQuestions = mutation({
+  args: {
+    quizId: v.id('quizzes'),
+    questionIds: v.array(v.string()),
+    answers: v.record(v.string(), v.union(v.string(), v.array(v.string()))),
+    currentQuestion: v.number(),
+  },
+  handler: async (ctx, { quizId, questionIds, answers, currentQuestion }) => {
+    await ctx.db.patch(quizId, { questionIds, answers, currentQuestion })
   },
 })

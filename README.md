@@ -24,6 +24,20 @@ Your app owns:
 - `content/questions.json`, `content/answers.ts`, `content/figures/`
 - Thin TanStack Start routes in `src/routes/` (see `template/src/routes/`)
   wrapping `<BankProvider bank={bank}>` + `<AppShell brand>` + framework pages.
+- `src/routes/styles.css` (scaffolded by `qb init`, imported as `?url` from
+  `__root.tsx`). It must list the framework as a Tailwind source — v4 ignores
+  `node_modules` by default, so without this none of the grid/badge/filter
+  utilities are generated and the app renders unstyled:
+
+```css
+@import 'tailwindcss';
+@import 'question-bank-framework/framework/styles/theme.css';
+@source '../node_modules/question-bank-framework'; /* relative to this file */
+```
+
+Pass `hideTagsColumn: true` to `defineBank` when tags merely duplicate
+dedicated fields (every tag equals a topic/type value already in its own
+column). Tags still feed free-text search.
 
 ## Reveal (eject) files
 

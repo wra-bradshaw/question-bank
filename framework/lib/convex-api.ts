@@ -2,15 +2,21 @@
 // Framework-owned: eject with `qb reveal framework/lib/convex-api.ts`.
 
 import { makeFunctionReference } from 'convex/server';
-import type { QuestionStatus, QuizSession } from '../../core/types.ts';
+import type { QuestionStatus, QuizAnswer, QuizSession } from '../../core/types.ts';
 
 type CreateQuizArgs = { title: string; questionIds: string[] };
 type ProgressArgs = {
   quizId: string;
   title: string;
-  answers: Record<string, string>;
+  answers: Record<string, QuizAnswer>;
   currentQuestion: number;
   completed: boolean;
+};
+type SetQuestionsArgs = {
+  quizId: string;
+  questionIds: string[];
+  answers: Record<string, QuizAnswer>;
+  currentQuestion: number;
 };
 type QuizDocument = QuizSession & { _id: string; _creationTime: number };
 type QuestionStatusDocument = {
@@ -28,6 +34,7 @@ export const convexApi = {
     list: makeFunctionReference<'query', Record<string, never>, QuizDocument[]>('quizzes:list'),
     remove: makeFunctionReference<'mutation', { quizId: string }, null>('quizzes:remove'),
     saveProgress: makeFunctionReference<'mutation', ProgressArgs, null>('quizzes:saveProgress'),
+    setQuestions: makeFunctionReference<'mutation', SetQuestionsArgs, null>('quizzes:setQuestions'),
   },
   questionStatuses: {
     list: makeFunctionReference<'query', Record<string, never>, QuestionStatusDocument[]>('questionStatuses:list'),

@@ -5,7 +5,7 @@ export default defineSchema({
   quizzes: defineTable({
     title: v.string(),
     questionIds: v.array(v.string()),
-    answers: v.record(v.string(), v.string()),
+    answers: v.record(v.string(), v.union(v.string(), v.array(v.string()))),
     currentQuestion: v.number(),
     completed: v.boolean(),
     createdAt: v.number(),

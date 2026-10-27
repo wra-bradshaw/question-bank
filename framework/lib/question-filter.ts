@@ -3,7 +3,7 @@
 // by config-defined `BankFieldDef[]` plus the three built-ins.
 // Framework-owned: eject with `qb reveal framework/lib/question-filter.ts`.
 
-import { questionStatuses, type BankFieldDef, type BankFilterOperatorId, type BaseQuestion, type QuestionStatus } from '../../core/types.ts';
+import { questionKind, questionKindLabels, questionKinds, questionStatuses, type BankFieldDef, type BankFilterOperatorId, type BaseQuestion, type QuestionStatus } from '../../core/types.ts';
 
 export type FilterMatch = 'and' | 'or';
 
@@ -102,6 +102,13 @@ function builtinFields(): FilterField[] {
     { id: 'id', label: 'ID', type: 'text', operators: textOperators, placeholder: 'Type a value…' },
     { id: 'tags', label: 'Tags', type: 'multiselect', operators: multiSelectOperators },
     {
+      id: 'kind',
+      label: 'Type',
+      type: 'select',
+      operators: selectOperators,
+      options: questionKinds.map((kind) => ({ value: kind, label: questionKindLabels[kind] })),
+    },
+    {
       id: 'status',
       label: 'Status',
       type: 'select',
@@ -128,7 +135,11 @@ function distinctStrings(values: Array<string | number | null | readonly string[
  * Build filter fields from bank config. Select/multiselect options default to
  * the distinct values across questions unless the field declares `options`.
  */
-export function createFilterFields(questions: readonly BaseQuestion[], fieldDefs: readonly BankFieldDef[]): FilterField[] {
+export function createFilterFields(
+  questions: readonly BaseQuestion[],
+  fieldDefs: readonly BankFieldDef[],
+  hideTagsColumn = false,
+): FilterField[] {
   const customs: FilterField[] = fieldDefs.map((def) => {
     let options: readonly FilterOption[] | undefined;
     if (def.options) {
@@ -156,7 +167,7 @@ export function createFilterFields(questions: readonly BaseQuestion[], fieldDefs
     };
   });
 
-  const builtins = builtinFields();
+  const builtins = builtinFields().filter((field) => !(hideTagsColumn && field.id === 'tags'));
   // Attach tag options derived from the bank (like the original).
   const tags = [...new Set(questions.flatMap((q) => q.tags))].sort((a, b) => a.localeCompare(b));
   const withTags = builtins.map((field) =>
@@ -220,8 +231,8 @@ function resolveFieldValue(
     if (ruleField === 'title') return question.title;
     if (ruleField === 'id') return question.id;
     if (ruleField === 'tags') return question.tags;
-    // status is handled by matchesRule before reaching here. Any other id
-    // is stale (no def, not a built-in) — match nothing.
+    // status/kind are handled by matchesRule before reaching here. Any other
+    // id is stale (no def, not a built-in) — match nothing.
     return null;
   }
   return def.getValue(question);
@@ -323,6 +334,7 @@ export function matchesRule(
 ): boolean {
   const type = filterFieldType(fields, rule.field);
   if (rule.field === 'status') return matchSelect(status, rule);
+  if (rule.field === 'kind') return matchSelect(questionKind(question), rule);
   const def = fieldDefs.find((d) => d.id === rule.field);
   const raw = resolveFieldValue(def, rule.field, question);
   if (type === 'text') return matchText(toText(raw), rule);
@@ -346,7 +358,7 @@ export function matchesFilters(
     : active.some((rule) => matchesRule(rule, fields, fieldDefs, question, status));
 }
 
-/** Free-text search across id/title/prompt/tags plus `searchable` custom fields. */
+/** Free-text search across id/title/prompt/tags/options plus `searchable` custom fields. */
 export function matchesSearch(
   question: BaseQuestion,
   query: string,
@@ -354,7 +366,13 @@ export function matchesSearch(
 ): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const parts = [question.id, question.title, question.prompt, question.tags.join(' ')];
+  const parts = [
+    question.id,
+    question.title,
+    question.prompt,
+    question.tags.join(' '),
+    (question.options ?? []).map((o) => o.text).join(' '),
+  ];
   for (const def of fieldDefs) {
     if (!def.searchable) continue;
     const raw = def.getValue(question);

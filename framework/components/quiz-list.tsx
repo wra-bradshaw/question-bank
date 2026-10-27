@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Trash2 } from 'lucide-react';
+import { ListOrdered, Trash2 } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import type { QuizSession } from '../../core/types.ts';
+import { isAnswerProvided, scoreAnswers } from '../../core/types.ts';
 import { Button } from './ui/button';
-import { deleteQuiz, listQuizzes } from '../lib/quiz-storage.ts';
+import { QuizQuestionEditor } from './quiz-question-editor';
+import { deleteQuiz, listQuizzes, setQuizQuestions } from '../lib/quiz-storage.ts';
 
 export function QuizList() {
   const bank = useBank();
@@ -14,6 +16,7 @@ export function QuizList() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState<QuizSession | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -40,6 +43,11 @@ export function QuizList() {
     }
   };
 
+  const saveQuestions = async (quiz: QuizSession, questionIds: string[]) => {
+    const updated = await setQuizQuestions(bank.namespace, quiz, questionIds);
+    setQuizzes((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+  };
+
   return (
     <div className="grid gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -63,7 +71,13 @@ export function QuizList() {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {quizzes.map((quiz) => {
-              const answeredCount = Object.values(quiz.answers).filter((answer) => answer.trim().length > 0).length;
+              const questions = quiz.questionIds
+                .map((id) => bank.questionById.get(id))
+                .filter((question) => question !== undefined);
+              const answeredCount = questions.filter((question) =>
+                isAnswerProvided(question, quiz.answers[question.id]),
+              ).length;
+              const score = scoreAnswers(questions, quiz.answers);
               return (
                 <div key={quiz.id} className="group relative">
                   <Link
@@ -71,26 +85,40 @@ export function QuizList() {
                     params={{ quizId: quiz.id }}
                     className="block rounded-xl border border-gray-200 bg-white p-5 transition-colors hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
                   >
-                    <h2 className="m-0 pr-10 text-lg font-semibold text-gray-900">{quiz.title}</h2>
+                    <h2 className="m-0 pr-16 text-lg font-semibold text-gray-900">{quiz.title}</h2>
                     <p className="mt-2 text-sm text-gray-700">
                       {quiz.questionIds.length} {quiz.questionIds.length === 1 ? 'question' : 'questions'}
                     </p>
                     <p className="mt-1 text-sm text-gray-600">
                       {answeredCount} of {quiz.questionIds.length} answered
+                      {score.gradeable > 0 && ` • ${score.correct}/${score.gradeable} correct`}
                     </p>
                   </Link>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-xs"
-                    aria-label={`Delete ${quiz.title}`}
-                    title="Delete quiz"
-                    disabled={deletingId === quiz.id}
-                    onClick={() => removeQuiz(quiz)}
-                    className="absolute right-3 top-3 rounded-full border-red-200 bg-white text-red-600 opacity-0 shadow-sm transition-opacity hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
+                  <div className="absolute right-3 top-3 flex gap-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-xs"
+                      aria-label={`Reorder questions in ${quiz.title}`}
+                      title="Reorder or remove questions"
+                      onClick={() => setEditingQuiz(quiz)}
+                      className="rounded-full bg-white shadow-sm"
+                    >
+                      <ListOrdered aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-xs"
+                      aria-label={`Delete ${quiz.title}`}
+                      title="Delete quiz"
+                      disabled={deletingId === quiz.id}
+                      onClick={() => removeQuiz(quiz)}
+                      className="rounded-full border-red-200 bg-white text-red-600 shadow-sm hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
                 </div>
               );
             })}
@@ -105,6 +133,14 @@ export function QuizList() {
           </Button>
         </div>
       )}
+
+      <QuizQuestionEditor
+        quiz={editingQuiz}
+        onOpenChange={(open) => {
+          if (!open) setEditingQuiz(null);
+        }}
+        onSave={saveQuestions}
+      />
     </div>
   );
 }

@@ -1,7 +1,22 @@
 // Re-export the stable core: types + BankContext/useBank/defineBank.
 // Framework code (ejectable) lives under framework/.
 
-export { BankContext, BankProvider, useBank, defineBank, questionStatuses } from './config.tsx';
+export {
+  BankContext,
+  BankProvider,
+  useBank,
+  defineBank,
+  getCorrectIds,
+  isAnswerCorrect,
+  isAnswerProvided,
+  isChoiceQuestion,
+  questionKind,
+  questionKindLabels,
+  questionKinds,
+  questionStatuses,
+  scoreAnswers,
+  toSelectedIds,
+} from './config.tsx';
 export type {
   Bank,
   BankFieldDef,
@@ -11,7 +26,10 @@ export type {
   BankSiteConfig,
   BaseQuestion,
   DefineBankInput,
+  QuestionKind,
+  QuestionOption,
   QuestionStatus,
   QuestionStatusMap,
+  QuizAnswer,
   QuizSession,
 } from './config.tsx';

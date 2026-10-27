@@ -17,14 +17,15 @@ import {
 } from '@tanstack/react-table';
 import { Search } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
-import type { BaseQuestion, QuestionStatus, QuestionStatusMap } from '../../core/types.ts';
+import type { BaseQuestion, QuestionKind, QuestionStatus, QuestionStatusMap, QuizSession } from '../../core/types.ts';
+import { isChoiceQuestion, questionKind, questionKindLabels } from '../../core/types.ts';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { FilterBuilder } from './filter-builder';
 import { MarkdownContent } from './markdown-content';
-import { Popover, PopoverAnchor, PopoverContent } from './ui/popover';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   createFilterFields,
@@ -36,7 +37,7 @@ import {
 import { useQuestionFilterStore } from '../lib/question-filter-store.ts';
 import { cn } from '../lib/utils.ts';
 import { getQuestionStatuses } from '../lib/question-status-storage.ts';
-import { createQuiz } from '../lib/quiz-storage.ts';
+import { createQuiz, listQuizzes, setQuizQuestions } from '../lib/quiz-storage.ts';
 
 type DragSelection = {
   value: boolean;
@@ -58,6 +59,14 @@ const questionStatusStyles: Record<QuestionStatus, string> = {
   revisit: 'border-amber-300 bg-amber-50 text-amber-900',
   complete: 'border-green-300 bg-green-50 text-green-800',
 };
+
+const questionKindStyles: Record<QuestionKind, string> = {
+  written: 'border-gray-300 bg-gray-50 text-gray-700',
+  single: 'border-sky-300 bg-sky-50 text-sky-900',
+  multiple: 'border-violet-300 bg-violet-50 text-violet-900',
+};
+
+const optionLetter = (index: number): string => String.fromCharCode(65 + index);
 
 function QuestionPreviewPopover({ question }: { question: BaseQuestion }) {
   const [open, setOpen] = useState(false);
@@ -163,6 +172,18 @@ function QuestionPreviewPopover({ question }: { question: BaseQuestion }) {
       >
         <div className="px-4 py-3">
           <MarkdownContent content={question.prompt} />
+          {isChoiceQuestion(question) && (
+            <ol className="mt-3 space-y-1.5">
+              {(question.options ?? []).map((option, index) => (
+                <li key={option.id} className="flex items-start gap-2 text-sm text-gray-800">
+                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-gray-50 text-[11px] font-bold text-gray-600">
+                    {optionLetter(index)}
+                  </span>
+                  <MarkdownContent content={option.text} className="min-w-0 flex-1 text-sm leading-6" />
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -193,6 +214,10 @@ export function QuestionBank() {
     (bank.defaultSorting ?? [{ id: 'id' }]).map((s) => ({ id: s.id, desc: s.desc ?? false })),
   );
   const [creatingQuiz, setCreatingQuiz] = useState(false);
+  const [addToQuizOpen, setAddToQuizOpen] = useState(false);
+  const [existingQuizzes, setExistingQuizzes] = useState<QuizSession[] | null>(null);
+  const [addingToQuizId, setAddingToQuizId] = useState<string | null>(null);
+  const [addToQuizError, setAddToQuizError] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const rowSelectionRef = useRef(rowSelection);
   rowSelectionRef.current = rowSelection;
@@ -200,7 +225,18 @@ export function QuestionBank() {
   const pendingCheckboxChange = useRef<{ rowId: string; value: boolean } | null>(null);
   const suppressRowClick = useRef<string | null>(null);
 
-  const filterFields = useMemo(() => createFilterFields(bank.questions, bank.fields), [bank]);
+  const filterFields = useMemo(
+    () => createFilterFields(bank.questions, bank.fields, bank.hideTagsColumn ?? false),
+    [bank],
+  );
+
+  // Size the ID column to the data: fits typical ids on one line, caps
+  // monsters (they wrap via break-all). Mono averages ~8.4px/char at
+  // text-sm, plus px-4 padding. e.g. econ ≈168, info hits the 320 cap.
+  const idWidth = useMemo(() => {
+    const longest = bank.questions.reduce((n, q) => Math.max(n, q.id.length), 0);
+    return Math.min(320, Math.max(120, Math.ceil(longest * 8.4 + 32)));
+  }, [bank.questions]);
 
   const handleAddFilter = (field: string) => {
     const type = filterFields.find((f) => f.id === field)?.type ?? 'text';
@@ -258,7 +294,7 @@ export function QuestionBank() {
                 </div>
               );
             }
-            return <span className="text-sm text-foreground">{formatCellValue(raw)}</span>;
+            return <span className="whitespace-normal break-words text-sm text-foreground">{formatCellValue(raw)}</span>;
           },
           enableSorting: sortable,
           size: width,
@@ -314,28 +350,58 @@ export function QuestionBank() {
       {
         accessorKey: 'id',
         header: 'ID',
-        cell: ({ row }) => <span className="font-mono text-sm text-muted-foreground">{row.original.id}</span>,
-        size: 104,
+        cell: ({ row }) => (
+          <span className="whitespace-normal break-all font-mono text-sm text-muted-foreground">{row.original.id}</span>
+        ),
+        size: idWidth,
       },
       {
+        // Sole absorbent column: no fixed size, so it takes up slack on wide
+        // screens instead of leaving dead space. Table min-width (below)
+        // always reserves 300px for it, so it can never collapse — and text
+        // wraps, so it can never paint over neighbours either.
         accessorKey: 'title',
         header: 'Question',
         cell: ({ row }) => <QuestionPreviewPopover question={row.original} />,
-        size: 340,
       },
+      // Absorbent like title: no fixed size, takes up slack on wide screens.
+      // minTableWidth (below) always reserves 200px for it, so it can
+      // never collapse to zero the way it did when the fixed columns
+      // already summed past the old 1200px floor.
+      // Hidden entirely when the bank sets hideTagsColumn (tags that merely
+      // duplicate dedicated fields).
+      ...(bank.hideTagsColumn
+        ? []
+        : [
+            {
+              id: 'tags',
+              accessorFn: (row) => row.tags.join(', '),
+              header: 'Tags',
+              cell: ({ row }) => (
+                <div className="flex min-w-0 flex-wrap gap-1">
+                  {row.original.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="min-w-0 whitespace-normal break-words">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              ),
+            } satisfies ColumnDef<BaseQuestion>,
+          ]),
       {
-        id: 'tags',
-        accessorFn: (row) => row.tags.join(', '),
-        header: 'Tags',
-        cell: ({ row }) => (
-          <div className="flex flex-wrap gap-1">
-            {row.original.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        ),
+        id: 'kind',
+        accessorFn: (row) => questionKind(row),
+        header: 'Type',
+        cell: ({ row }) => {
+          const kind = questionKind(row.original);
+          const count = row.original.options?.length ?? 0;
+          return (
+            <Badge variant="outline" className={questionKindStyles[kind]} title={count > 0 ? `${count} options` : undefined}>
+              {questionKindLabels[kind]}
+            </Badge>
+          );
+        },
+        size: 132,
       },
       ...customs,
       {
@@ -353,7 +419,22 @@ export function QuestionBank() {
         size: 108,
       },
     ];
-  }, [bank.fields, questionStatusMap]);
+  }, [bank.fields, bank.hideTagsColumn, idWidth, questionStatusMap]);
+
+  // Floor the table width at the sum of fixed columns plus 300px for the
+  // absorbent title and 200px for the absorbent tags, so neither can ever
+  // collapse to zero (which squeezed content over neighbouring columns).
+  const minTableWidth = useMemo(() => {
+    let total = 0;
+    for (const column of columns) {
+      // ColumnDef inputs use accessorKey instead of id for the id/title columns.
+      const key = column.id ?? (column as { accessorKey?: string }).accessorKey;
+      if (key === 'title') total += 300;
+      else if (key === 'tags') total += 200;
+      else total += column.size ?? 150;
+    }
+    return Math.max(1200, total);
+  }, [columns]);
 
   const table = useReactTable({
     data: filteredQuestions,
@@ -512,6 +593,32 @@ export function QuestionBank() {
     }
   };
 
+  const openAddToQuiz = (open: boolean) => {
+    setAddToQuizOpen(open);
+    if (!open) return;
+    setExistingQuizzes(null);
+    setAddToQuizError(false);
+    listQuizzes(bank.namespace).then(setExistingQuizzes, () => setExistingQuizzes([]));
+  };
+
+  const addToQuiz = async (quiz: QuizSession) => {
+    const existing = new Set(quiz.questionIds);
+    const additions = bank.questions.filter((question) => rowSelection[question.id] && !existing.has(question.id));
+    setAddingToQuizId(quiz.id);
+    setAddToQuizError(false);
+    try {
+      if (additions.length > 0) {
+        await setQuizQuestions(bank.namespace, quiz, [...quiz.questionIds, ...additions.map((question) => question.id)]);
+      }
+      setAddToQuizOpen(false);
+      await navigate({ to: '/quiz/$quizId', params: { quizId: quiz.id } });
+    } catch {
+      setAddToQuizError(true);
+    } finally {
+      setAddingToQuizId(null);
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b bg-background px-4 py-3">
@@ -544,14 +651,16 @@ export function QuestionBank() {
         </div>
       </div>
 
-      <Table containerRef={tableContainerRef} containerClassName="min-h-0 flex-1 overflow-auto" className="min-w-[1200px] table-fixed">
+      <Table containerRef={tableContainerRef} containerClassName="min-h-0 flex-1 overflow-auto" className="table-fixed" style={{ minWidth: minTableWidth }}>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  style={header.column.id === 'tags' ? undefined : { width: header.getSize() }}
+                  // Title and tags are the absorbent columns (no width → take up
+                  // slack on wide screens). minTableWidth below floors them.
+                  style={header.column.id === 'tags' || header.column.id === 'title' ? undefined : { width: header.getSize() }}
                   className="sticky top-0 z-10 h-12 border-b bg-muted px-4 text-sm font-semibold text-foreground"
                 >
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
@@ -598,7 +707,10 @@ export function QuestionBank() {
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className={cn('border-b px-4 py-2 align-middle', cell.column.id === 'title' && 'whitespace-normal')}
+                        className={cn(
+                          'border-b px-4 py-2 align-middle',
+                          cell.column.id === 'title' && 'whitespace-normal break-words',
+                        )}
                         onClick={cell.column.id === 'select' ? (event) => event.stopPropagation() : undefined}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -642,7 +754,51 @@ export function QuestionBank() {
           <Button variant="ghost" className="text-base" onClick={() => setRowSelection({})}>
             Clear
           </Button>
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2">
+            <Popover open={addToQuizOpen} onOpenChange={openAddToQuiz}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="text-base">
+                  Add to quiz
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="end" className="w-80 p-1">
+                {existingQuizzes === null ? (
+                  <p className="m-0 px-3 py-4 text-center text-sm text-muted-foreground">Loading quizzes...</p>
+                ) : existingQuizzes.length === 0 ? (
+                  <p className="m-0 px-3 py-4 text-center text-sm text-muted-foreground">No quizzes yet. Use "Make quiz" instead.</p>
+                ) : (
+                  <ul className="m-0 max-h-72 list-none overflow-y-auto p-0">
+                    {existingQuizzes.map((quiz) => {
+                      const newCount = selectedIds.filter((id) => !quiz.questionIds.includes(id)).length;
+                      return (
+                        <li key={quiz.id}>
+                          <button
+                            type="button"
+                            disabled={addingToQuizId !== null}
+                            onClick={() => addToQuiz(quiz)}
+                            className="flex w-full flex-col items-start rounded-sm px-3 py-2 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:opacity-50"
+                          >
+                            <span className="text-sm font-medium">{quiz.title}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {addingToQuizId === quiz.id
+                                ? 'Adding...'
+                                : `${quiz.questionIds.length} ${quiz.questionIds.length === 1 ? 'question' : 'questions'} • ${
+                                    newCount === 0 ? 'all selected already included' : `+${newCount} new`
+                                  }`}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {addToQuizError && (
+                  <p role="alert" className="m-0 px-3 py-2 text-sm text-red-700">
+                    Could not add to that quiz. Please try again.
+                  </p>
+                )}
+              </PopoverContent>
+            </Popover>
             <Button className="text-base" onClick={makeQuiz} disabled={creatingQuiz}>
               {creatingQuiz ? 'Making quiz...' : 'Make quiz'}
             </Button>
