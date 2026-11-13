@@ -358,7 +358,7 @@ export function QuizPage() {
             <p id="quiz-choices-label" className="text-sm font-semibold text-gray-900">
               {kind === 'single' ? 'Choose one answer' : 'Choose all that apply'}
             </p>
-            <div role={kind === 'single' ? 'radiogroup' : 'group'} aria-labelledby="quiz-choices-label" className="mt-2 grid gap-2">
+            <div role={kind === 'single' ? 'radiogroup' : 'group'} aria-labelledby="quiz-choices-label" className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
               {(activeQuestion.options ?? []).map((option, index) => {
                 const selected = selectedIds.includes(option.id);
                 const isCorrectOption = correctIds.includes(option.id);
@@ -398,7 +398,7 @@ export function QuizPage() {
                     >
                       {optionLetter(index)}
                     </span>
-                    <MarkdownContent content={option.text} className="min-w-0 flex-1 text-base leading-7" />
+                    <MarkdownContent content={option.text} className="min-w-0 flex-1 overflow-x-auto text-base leading-7" />
                     {showCorrectness && isCorrectOption && (
                       <Badge variant="outline" className="shrink-0 border-green-600 bg-white text-green-800">
                         Correct

@@ -142,18 +142,18 @@ export function PairingResponse({
       {matching && (
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
           <p className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500">Options</p>
-          <ol className="m-0 mt-2 grid list-none gap-x-6 gap-y-1 p-0 sm:grid-cols-2">
+          <ol className="m-0 mt-2 grid list-none grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-1 p-0 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             {(question.options ?? []).map((option, index) => (
               <li key={option.id} className="flex items-start gap-2 text-sm text-gray-800">
                 <span className="w-5 shrink-0 font-semibold text-gray-500">{optionLetter(index)}.</span>
-                <MarkdownContent inline content={option.text} className="min-w-0 flex-1" />
+                <MarkdownContent inline content={option.text} className="min-w-0 flex-1 overflow-x-auto" />
               </li>
             ))}
           </ol>
         </div>
       )}
 
-      <ol aria-labelledby={`quiz-pairing-label-${question.id}`} className="m-0 mt-3 grid list-none gap-2 p-0">
+      <ol aria-labelledby={`quiz-pairing-label-${question.id}`} className="m-0 mt-3 grid list-none grid-cols-[minmax(0,1fr)] gap-2 p-0">
         {slots.map((slot, index) => {
           const chosen = pairings[slot.id];
           const isCorrect = chosen === slot.correctId;
@@ -174,7 +174,7 @@ export function PairingResponse({
             >
               <div className="flex min-w-0 flex-1 items-start gap-2">
                 <span className="mt-0.5 w-6 shrink-0 text-sm font-semibold tabular-nums text-gray-500">{index + 1}.</span>
-                <label htmlFor={selectId} className="min-w-0 flex-1 text-base leading-7 text-gray-900">
+                <label htmlFor={selectId} className="min-w-0 flex-1 overflow-x-auto text-base leading-7 text-gray-900">
                   <MarkdownContent inline content={label} />
                 </label>
               </div>
