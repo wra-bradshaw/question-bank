@@ -49,7 +49,7 @@ export function QuizList() {
   };
 
   return (
-    <div className="grid gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-3xl font-bold tracking-tight text-gray-900">My quizzes</h1>
@@ -69,7 +69,7 @@ export function QuizList() {
               Could not delete that quiz. Please try again.
             </p>
           )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             {quizzes.map((quiz) => {
               const questions = quiz.questionIds
                 .map((id) => bank.questionById.get(id))
@@ -85,7 +85,7 @@ export function QuizList() {
                     params={{ quizId: quiz.id }}
                     className="block rounded-xl border border-gray-200 bg-white p-5 transition-colors hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
                   >
-                    <h2 className="m-0 pr-16 text-lg font-semibold text-gray-900">{quiz.title}</h2>
+                    <h2 className="m-0 break-words pr-16 text-lg font-semibold text-gray-900">{quiz.title}</h2>
                     <p className="mt-2 text-sm text-gray-700">
                       {quiz.questionIds.length} {quiz.questionIds.length === 1 ? 'question' : 'questions'}
                     </p>

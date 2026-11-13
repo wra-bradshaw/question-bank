@@ -99,6 +99,33 @@ defineBank({
 });
 ```
 
+## Question kinds
+
+Every question has `id/title/prompt/tags`; `kind` (default `written`) picks the
+response UI and grading. All kinds except `written` are auto-graded in quizzes
+(Check answer → per-question feedback, the bank's answer shown as the explanation).
+
+| kind | extra fields | answer UI |
+|---|---|---|
+| `written` | — | free-text box; "Show answer" reveals `answers[id]` |
+| `single` | `options`, `correctIds` (exactly one) | radio list |
+| `multiple` | `options`, `correctIds` (≥ 1, exact-set match) | checkbox list |
+| `numerical` | `numeric: { value, tolerance?, unit? }` | number input; correct within ±`tolerance` (default exact). Accepts `1,756`, `1.2e3`. |
+| `matching` | shared `options`, `items: [{ id, text, correctId }]` | one dropdown per item, options lettered A, B, … |
+| `dropdown` | `blanks: [{ id, label?, options, correctId }]` | one dropdown per blank, each with its own options |
+
+```json
+{ "id": "q7", "kind": "matching", "title": "…", "prompt": "Match each join to its cost.", "tags": [],
+  "options": [{ "id": "a", "text": "Hash join" }, { "id": "b", "text": "Sort-merge join" }],
+  "items": [{ "id": "1", "text": "`3(M + N)`", "correctId": "a" }] }
+```
+
+Matching and dropdown questions earn partial credit per item/blank in the
+review (`gradeAnswer`), but only count as correct in the quiz score when every
+item is right. `defineBank` validates each question's fields against its kind
+and throws on mismatches (e.g. a `correctId` that isn't one of the options).
+Don't repeat the option list or answer table in `prompt`; the UI renders them.
+
 ## Dev
 
 ```sh

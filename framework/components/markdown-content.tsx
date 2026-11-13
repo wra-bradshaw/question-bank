@@ -9,7 +9,7 @@ const components: Components = {
   blockquote: ({ ...props }) => <blockquote className="my-4 border-l-2 border-gray-300 pl-4 text-gray-700" {...props} />,
   code: ({ className, children, ...props }) => {
     const isBlock = className?.startsWith('language-') ?? false
-    return <code className={cn(isBlock ? 'font-mono text-sm' : 'rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.9em] text-gray-900', className)} {...props}>{children}</code>
+    return <code className={cn(isBlock ? 'font-mono text-sm' : 'rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.9em] text-gray-900 break-words', className)} {...props}>{children}</code>
   },
   h1: ({ ...props }) => <h1 className="mb-3 mt-6 text-2xl font-bold tracking-tight text-gray-950 first:mt-0" {...props} />,
   h2: ({ ...props }) => <h2 className="mb-3 mt-6 text-xl font-bold tracking-tight text-gray-950 first:mt-0" {...props} />,
@@ -98,12 +98,23 @@ const normalizeGfmTables = (content: string) => {
   }).join('')
 }
 
-export function MarkdownContent({ content, className }: { content: string; className?: string }) {
-  return (
-    <div className={cn('min-w-0 text-base leading-7 text-gray-800', className)}>
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
-        {normalizeGfmTables(normalizeMathDelimiters(content))}
-      </ReactMarkdown>
-    </div>
+// Inline mode: paragraphs render as spans so short markdown (option text,
+// blank labels) can sit inside buttons, select triggers and flex rows.
+const inlineComponents: Components = {
+  ...components,
+  p: ({ ...props }) => <span className="whitespace-pre-wrap" {...props} />,
+}
+
+// min-w-0 + break-words keep long tokens inside the column; display math
+// and wide tables/code scroll horizontally instead of widening the page.
+const blockClassName = 'min-w-0 max-w-full break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_.katex-display]:py-1'
+
+export function MarkdownContent({ content, className, inline = false }: { content: string; className?: string; inline?: boolean }) {
+  const markdown = (
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={inline ? inlineComponents : components}>
+      {normalizeGfmTables(normalizeMathDelimiters(content))}
+    </ReactMarkdown>
   )
+  if (inline) return <span className={cn('min-w-0', className)}>{markdown}</span>
+  return <div className={cn(blockClassName, 'text-base leading-7 text-gray-800', className)}>{markdown}</div>
 }

@@ -9,7 +9,10 @@
     "title": "XML/JSON data representation",
     "prompt": "This question concerns representations of data in XML/JSON.\n\n**(a)** (0.5 mark) Is the XML below well-formed? Explain.\n\n```xml\n<subject>COMP20008</subject>\n```\n",
     "source": "2019-s1.md",
-    "tags": ["Data fundamentals", "Data, formats & databases"]
+    "tags": [
+      "Data fundamentals",
+      "Data, formats & databases"
+    ]
   },
   {
     "id": "2019-s1-q02",
@@ -21,7 +24,10 @@
     "title": "Temperature sensor readings, noise and outliers",
     "prompt": "Explain the difference between readings which are noise and readings which are outliers.\n",
     "source": "2019-s1.md",
-    "tags": ["Data preparation", "Data quality & preparation"]
+    "tags": [
+      "Data preparation",
+      "Data quality & preparation"
+    ]
   },
   {
     "id": "ioa-001",
@@ -33,7 +39,10 @@
     "title": "Research question and evidence",
     "prompt": "What is your research question, and what result would count as evidence?",
     "source": "assignment-ioa",
-    "tags": ["Assignment questions", "Justification"]
+    "tags": [
+      "Assignment questions",
+      "Justification"
+    ]
   },
   {
     "id": "2019-s1-mc01",
@@ -45,14 +54,31 @@
     "title": "Well-formed XML",
     "prompt": "Which of the following XML documents is well-formed?",
     "options": [
-      { "id": "a", "text": "`<subject>COMP20008<subject>`" },
-      { "id": "b", "text": "`<subject>COMP20008</subject>`" },
-      { "id": "c", "text": "`<subject><topic>COMP20008</subject></topic>`" },
-      { "id": "d", "text": "`COMP20008`" }
+      {
+        "id": "a",
+        "text": "`<subject>COMP20008<subject>`"
+      },
+      {
+        "id": "b",
+        "text": "`<subject>COMP20008</subject>`"
+      },
+      {
+        "id": "c",
+        "text": "`<subject><topic>COMP20008</subject></topic>`"
+      },
+      {
+        "id": "d",
+        "text": "`COMP20008`"
+      }
     ],
-    "correctIds": ["b"],
+    "correctIds": [
+      "b"
+    ],
     "source": "2019-s1.md",
-    "tags": ["Data fundamentals", "Data, formats & databases"]
+    "tags": [
+      "Data fundamentals",
+      "Data, formats & databases"
+    ]
   },
   {
     "id": "2019-s1-mc02",
@@ -64,13 +90,147 @@
     "title": "Outlier handling",
     "prompt": "A temperature sensor reports occasional extreme spikes. Which of the following are reasonable outlier-handling steps? **Select all that apply.**",
     "options": [
-      { "id": "a", "text": "Remove spikes that are physically impossible for the sensor" },
-      { "id": "b", "text": "Delete every reading above the mean" },
-      { "id": "c", "text": "Flag spikes and investigate whether they coincide with known events" },
-      { "id": "d", "text": "Replace spikes with interpolated values and document the change" }
+      {
+        "id": "a",
+        "text": "Remove spikes that are physically impossible for the sensor"
+      },
+      {
+        "id": "b",
+        "text": "Delete every reading above the mean"
+      },
+      {
+        "id": "c",
+        "text": "Flag spikes and investigate whether they coincide with known events"
+      },
+      {
+        "id": "d",
+        "text": "Replace spikes with interpolated values and document the change"
+      }
     ],
-    "correctIds": ["a", "c", "d"],
+    "correctIds": [
+      "a",
+      "c",
+      "d"
+    ],
     "source": "2019-s1.md",
-    "tags": ["Data preparation", "Data quality & preparation"]
+    "tags": [
+      "Data preparation",
+      "Data quality & preparation"
+    ]
+  },
+  {
+    "id": "2019-s1-num01",
+    "kind": "numerical",
+    "number": 5,
+    "title": "Mean of a sample",
+    "prompt": "A sample contains the values 4, 8, 15, 16 and 23. What is their mean?",
+    "numeric": {
+      "value": 13.2,
+      "tolerance": 0.01
+    },
+    "tags": [
+      "Data fundamentals"
+    ],
+    "year": 2019,
+    "semester": "S1",
+    "marks": 2,
+    "source": "2019-s1.md"
+  },
+  {
+    "id": "2019-s1-match01",
+    "kind": "matching",
+    "number": 6,
+    "title": "Match the data format",
+    "prompt": "Match each description to the data format it best describes.",
+    "options": [
+      {
+        "id": "a",
+        "text": "CSV"
+      },
+      {
+        "id": "b",
+        "text": "JSON"
+      },
+      {
+        "id": "c",
+        "text": "XML"
+      },
+      {
+        "id": "d",
+        "text": "Parquet"
+      }
+    ],
+    "items": [
+      {
+        "id": "1",
+        "text": "Nested key–value objects, common in web APIs",
+        "correctId": "b"
+      },
+      {
+        "id": "2",
+        "text": "Plain-text rows with a delimiter",
+        "correctId": "a"
+      },
+      {
+        "id": "3",
+        "text": "Tagged elements that must be well-formed",
+        "correctId": "c"
+      }
+    ],
+    "tags": [
+      "Data fundamentals",
+      "Data, formats & databases"
+    ],
+    "year": 2019,
+    "semester": "S1",
+    "marks": 2,
+    "source": "2019-s1.md"
+  },
+  {
+    "id": "2019-s1-drop01",
+    "kind": "dropdown",
+    "number": 7,
+    "title": "Fill in the blanks: outliers",
+    "prompt": "Fill in the blanks.",
+    "blanks": [
+      {
+        "id": "1",
+        "label": "A reading that is far from the rest of the data is an",
+        "options": [
+          {
+            "id": "a",
+            "text": "outlier"
+          },
+          {
+            "id": "b",
+            "text": "imputation"
+          }
+        ],
+        "correctId": "a"
+      },
+      {
+        "id": "2",
+        "label": "Random error in measurements is called",
+        "options": [
+          {
+            "id": "a",
+            "text": "bias"
+          },
+          {
+            "id": "b",
+            "text": "noise"
+          }
+        ],
+        "correctId": "b"
+      }
+    ],
+    "tags": [
+      "Data preparation",
+      "Data quality & preparation"
+    ],
+    "year": 2019,
+    "semester": "S1",
+    "marks": 2,
+    "source": "2019-s1.md"
   }
 ]

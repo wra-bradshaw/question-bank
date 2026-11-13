@@ -7,9 +7,12 @@ import { useBank } from '../../core/config.tsx';
 import type { QuestionStatus, QuestionStatusMap, QuizAnswer, QuizSession } from '../../core/types.ts';
 import {
   getCorrectIds,
+  gradeAnswer,
   isAnswerCorrect,
   isAnswerProvided,
   isChoiceQuestion,
+  isGradeableQuestion,
+  isPairingQuestion,
   questionKind,
   questionKindLabels,
   scoreAnswers,
@@ -19,12 +22,11 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { MarkdownContent } from './markdown-content';
+import { formatNumericAnswer, NumericalResponse, optionLetter, PairingResponse } from './question-response';
 import { setQuestionStatus, getQuestionStatuses } from '../lib/question-status-storage.ts';
 import { questionStatusLabels } from '../lib/question-filter.ts';
 import { getQuiz, saveQuizLocally, saveQuizProgress } from '../lib/quiz-storage.ts';
 import { cn } from '../lib/utils.ts';
-
-const optionLetter = (index: number): string => String.fromCharCode(65 + index);
 
 const questionStatusStyles: Record<QuestionStatus, string> = {
   unanswered: 'border-gray-300 bg-gray-50 text-gray-700',
@@ -111,7 +113,7 @@ export function QuizPage() {
     );
   };
 
-  const setChoiceAnswer = (questionId: string, value: string[]) => {
+  const setGradedAnswer = (questionId: string, value: QuizAnswer) => {
     setChecked((current) => (current[questionId] ? { ...current, [questionId]: false } : current));
     setSession((current) =>
       current ? { ...current, completed: false, answers: { ...current.answers, [questionId]: value } } : current,
@@ -122,9 +124,9 @@ export function QuizPage() {
     if (!activeQuestion) return;
     const current = toSelectedIds(activeQuestion, session?.answers[questionId]);
     if (single) {
-      setChoiceAnswer(questionId, current[0] === optionId ? [] : [optionId]);
+      setGradedAnswer(questionId, current[0] === optionId ? [] : [optionId]);
     } else {
-      setChoiceAnswer(
+      setGradedAnswer(
         questionId,
         current.includes(optionId) ? current.filter((id) => id !== optionId) : [...current, optionId],
       );
@@ -184,17 +186,19 @@ export function QuizPage() {
   const suggestedAnswer = bank.answers[activeQuestion.id];
   const isSuggestedAnswerShown = shownAnswerId === activeQuestion.id;
   const choice = isChoiceQuestion(activeQuestion);
+  const gradeable = isGradeableQuestion(activeQuestion);
   const kind = questionKind(activeQuestion);
   const selectedIds = toSelectedIds(activeQuestion, answer);
   const hasSelection = isAnswerProvided(activeQuestion, answer);
   const isChecked = checked[activeQuestion.id] === true;
   const correctness = isChecked ? isAnswerCorrect(activeQuestion, answer) : null;
+  const grade = isChecked ? gradeAnswer(activeQuestion, answer) : null;
   const correctIds = getCorrectIds(activeQuestion);
   const activeStatus: QuestionStatus = statusMap[activeQuestion.id] ?? 'unanswered';
   const score = scoreAnswers(quizQuestions, session.answers);
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
       <Link to="/quizzes" className="text-sm font-semibold text-gray-600 hover:text-gray-900">
         Back to My quizzes
       </Link>
@@ -227,7 +231,7 @@ export function QuizPage() {
           </form>
         ) : (
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="m-0 text-3xl font-bold tracking-tight text-gray-900">{session.title}</h1>
+            <h1 className="m-0 min-w-0 break-words text-3xl font-bold tracking-tight text-gray-900">{session.title}</h1>
             <Button type="button" variant="ghost" size="icon-xs" aria-label="Edit quiz title" title="Edit quiz title" onClick={startEditingTitle}>
               <Pencil aria-hidden="true" />
             </Button>
@@ -289,13 +293,24 @@ export function QuizPage() {
           <ol className="mt-3 grid gap-1.5">
             {quizQuestions.map((question, index) => {
               const result = isAnswerCorrect(question, session.answers[question.id]);
+              const parts = isPairingQuestion(question) ? gradeAnswer(question, session.answers[question.id]) : null;
+              const resultLabel =
+                result === null
+                  ? isGradeableQuestion(question)
+                    ? 'Unanswered'
+                    : 'Written'
+                  : result
+                    ? 'Correct'
+                    : parts
+                      ? `Incorrect · ${parts.earned}/${parts.possible}`
+                      : 'Incorrect';
               return (
                 <li key={question.id}>
                   <button
                     type="button"
                     onClick={() => goToQuestion(index)}
                     className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-gray-100"
-                    aria-label={`Review question ${index + 1}: ${question.title} — ${result === null ? 'written' : result ? 'correct' : 'incorrect'}`}
+                    aria-label={`Review question ${index + 1}: ${question.title} — ${resultLabel.toLowerCase()}`}
                   >
                     <span
                       aria-hidden="true"
@@ -309,9 +324,7 @@ export function QuizPage() {
                       {result === true ? <Check className="size-3" /> : result === false ? <X className="size-3" /> : index + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-gray-900">{question.title}</span>
-                    <span className="shrink-0 text-xs text-gray-500">
-                      {result === null ? 'Written' : result ? 'Correct' : 'Incorrect'}
-                    </span>
+                    <span className="shrink-0 text-xs text-gray-500">{resultLabel}</span>
                   </button>
                 </li>
               );
@@ -320,19 +333,19 @@ export function QuizPage() {
         </section>
       )}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="m-0 flex-1 text-xl font-semibold text-gray-900">{activeQuestion.title}</h2>
+          <h2 className="m-0 min-w-0 flex-1 break-words text-xl font-semibold text-gray-900">{activeQuestion.title}</h2>
           <Badge variant="outline">{questionKindLabels[kind]}</Badge>
           <Badge variant="outline" className={questionStatusStyles[activeStatus]}>
             {questionStatusLabels[activeStatus]}
           </Badge>
         </div>
-        <p className="mt-1 font-mono text-xs text-gray-500">{activeQuestion.id}</p>
+        <p className="mt-1 break-all font-mono text-xs text-gray-500">{activeQuestion.id}</p>
         {activeQuestion.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {activeQuestion.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
+              <Badge key={tag} variant="secondary" className="max-w-full shrink whitespace-normal break-words">
                 {tag}
               </Badge>
             ))}
@@ -401,6 +414,39 @@ export function QuizPage() {
               })}
             </div>
 
+          </div>
+        ) : kind === 'numerical' ? (
+          <NumericalResponse
+            question={activeQuestion}
+            answer={answer}
+            checked={isChecked}
+            correct={correctness}
+            onChange={(value) => setGradedAnswer(activeQuestion.id, value)}
+          />
+        ) : isPairingQuestion(activeQuestion) ? (
+          <PairingResponse
+            question={activeQuestion}
+            answer={answer}
+            checked={isChecked}
+            onChange={(value) => setGradedAnswer(activeQuestion.id, value)}
+          />
+        ) : (
+          <div className="mt-6">
+            <label htmlFor="quiz-answer" className="text-sm font-semibold text-gray-900">
+              Your answer
+            </label>
+            <textarea
+              id="quiz-answer"
+              value={typeof answer === 'string' ? answer : ''}
+              onChange={(event) => updateWrittenAnswer(event.target.value)}
+              placeholder="Write your working or notes here..."
+              className="mt-2 block min-h-40 w-full resize-y rounded-lg border border-gray-300 bg-white p-3 text-base leading-relaxed text-gray-900 outline-none placeholder:text-gray-400"
+            />
+          </div>
+        )}
+
+        {gradeable && (
+          <div>
             {isChecked && correctness !== null && (
               <div
                 role="status"
@@ -411,12 +457,16 @@ export function QuizPage() {
               >
                 {correctness
                   ? 'Correct — nice work.'
-                  : `Not quite. Correct answer${correctIds.length > 1 ? 's' : ''}: ${correctIds
-                      .map((id) => {
-                        const index = (activeQuestion.options ?? []).findIndex((o) => o.id === id);
-                        return index >= 0 ? optionLetter(index) : id;
-                      })
-                      .join(', ')}`}
+                  : kind === 'numerical'
+                    ? `Not quite. Expected ${formatNumericAnswer(activeQuestion)}.`
+                    : isPairingQuestion(activeQuestion) && grade
+                      ? `Not quite — ${grade.earned} of ${grade.possible} correct. Corrections are shown on each ${kind === 'matching' ? 'item' : 'blank'}.`
+                      : `Not quite. Correct answer${correctIds.length > 1 ? 's' : ''}: ${correctIds
+                          .map((id) => {
+                            const index = (activeQuestion.options ?? []).findIndex((o) => o.id === id);
+                            return index >= 0 ? optionLetter(index) : id;
+                          })
+                          .join(', ')}`}
               </div>
             )}
 
@@ -436,24 +486,11 @@ export function QuizPage() {
               )}
             </div>
           </div>
-        ) : (
-          <div className="mt-6">
-            <label htmlFor="quiz-answer" className="text-sm font-semibold text-gray-900">
-              Your answer
-            </label>
-            <textarea
-              id="quiz-answer"
-              value={typeof answer === 'string' ? answer : ''}
-              onChange={(event) => updateWrittenAnswer(event.target.value)}
-              placeholder="Write your working or notes here..."
-              className="mt-2 block min-h-40 w-full resize-y rounded-lg border border-gray-300 bg-white p-3 text-base leading-relaxed text-gray-900 outline-none placeholder:text-gray-400"
-            />
-          </div>
         )}
 
-        {suggestedAnswer && (choice ? isSuggestedAnswerShown : true) && (
+        {suggestedAnswer && (gradeable ? isSuggestedAnswerShown : true) && (
           <div className="mt-5">
-            {!choice && (
+            {!gradeable && (
               <Button
                 variant="outline"
                 aria-expanded={isSuggestedAnswerShown}
@@ -466,7 +503,7 @@ export function QuizPage() {
             {isSuggestedAnswerShown && (
               <section id="suggested-answer" className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <h3 className="m-0 text-base font-semibold text-gray-900">
-                  {choice ? 'Explanation' : 'Suggested answer'}
+                  {gradeable ? 'Explanation' : 'Suggested answer'}
                 </h3>
                 <MarkdownContent content={suggestedAnswer} className="mt-3 text-sm leading-relaxed text-gray-800" />
               </section>

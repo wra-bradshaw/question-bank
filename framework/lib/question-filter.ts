@@ -358,7 +358,7 @@ export function matchesFilters(
     : active.some((rule) => matchesRule(rule, fields, fieldDefs, question, status));
 }
 
-/** Free-text search across id/title/prompt/tags/options plus `searchable` custom fields. */
+/** Free-text search across id/title/prompt/tags/options/items/blanks plus `searchable` custom fields. */
 export function matchesSearch(
   question: BaseQuestion,
   query: string,
@@ -372,6 +372,8 @@ export function matchesSearch(
     question.prompt,
     question.tags.join(' '),
     (question.options ?? []).map((o) => o.text).join(' '),
+    (question.items ?? []).map((item) => item.text).join(' '),
+    (question.blanks ?? []).map((blank) => [blank.label ?? '', ...blank.options.map((o) => o.text)].join(' ')).join(' '),
   ];
   for (const def of fieldDefs) {
     if (!def.searchable) continue;

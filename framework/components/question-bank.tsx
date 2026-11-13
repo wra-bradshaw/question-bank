@@ -18,7 +18,7 @@ import {
 import { Search } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import type { BaseQuestion, QuestionKind, QuestionStatus, QuestionStatusMap, QuizSession } from '../../core/types.ts';
-import { isChoiceQuestion, questionKind, questionKindLabels } from '../../core/types.ts';
+import { getPairingSlots, isChoiceQuestion, questionKind, questionKindLabels } from '../../core/types.ts';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -64,9 +64,29 @@ const questionKindStyles: Record<QuestionKind, string> = {
   written: 'border-gray-300 bg-gray-50 text-gray-700',
   single: 'border-sky-300 bg-sky-50 text-sky-900',
   multiple: 'border-violet-300 bg-violet-50 text-violet-900',
+  numerical: 'border-emerald-300 bg-emerald-50 text-emerald-900',
+  matching: 'border-orange-300 bg-orange-50 text-orange-900',
+  dropdown: 'border-rose-300 bg-rose-50 text-rose-900',
 };
 
 const optionLetter = (index: number): string => String.fromCharCode(65 + index);
+
+/** Short structural summary for the Type badge tooltip, e.g. "5 items · 11 options". */
+function kindDetail(question: BaseQuestion): string | undefined {
+  switch (questionKind(question)) {
+    case 'single':
+    case 'multiple':
+      return `${question.options?.length ?? 0} options`;
+    case 'matching':
+      return `${question.items?.length ?? 0} items · ${question.options?.length ?? 0} options`;
+    case 'dropdown':
+      return `${question.blanks?.length ?? 0} blanks`;
+    case 'numerical':
+      return question.numeric?.unit ? `Numeric answer (${question.numeric.unit})` : 'Numeric answer';
+    default:
+      return undefined;
+  }
+}
 
 function QuestionPreviewPopover({ question }: { question: BaseQuestion }) {
   const [open, setOpen] = useState(false);
@@ -180,6 +200,16 @@ function QuestionPreviewPopover({ question }: { question: BaseQuestion }) {
                     {optionLetter(index)}
                   </span>
                   <MarkdownContent content={option.text} className="min-w-0 flex-1 text-sm leading-6" />
+                </li>
+              ))}
+            </ol>
+          )}
+          {getPairingSlots(question).length > 0 && (
+            <ol className="mt-3 list-decimal space-y-1 pl-6 text-sm text-gray-800">
+              {getPairingSlots(question).map((slot, index) => (
+                <li key={slot.id}>
+                  <MarkdownContent inline content={slot.label?.trim() ? slot.label : `Blank ${index + 1}`} />
+                  <span className="text-gray-500"> → ___</span>
                 </li>
               ))}
             </ol>
@@ -394,9 +424,8 @@ export function QuestionBank() {
         header: 'Type',
         cell: ({ row }) => {
           const kind = questionKind(row.original);
-          const count = row.original.options?.length ?? 0;
           return (
-            <Badge variant="outline" className={questionKindStyles[kind]} title={count > 0 ? `${count} options` : undefined}>
+            <Badge variant="outline" className={questionKindStyles[kind]} title={kindDetail(row.original)}>
               {questionKindLabels[kind]}
             </Badge>
           );

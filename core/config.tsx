@@ -31,6 +31,10 @@ export type {
   BankSiteConfig,
   BaseQuestion,
   DefineBankInput,
+  DropdownBlank,
+  MatchingItem,
+  NumericAnswer,
+  PairingSlot,
   QuestionKind,
   QuestionOption,
   QuestionStatus,
@@ -40,13 +44,19 @@ export type {
 } from './types.ts';
 export {
   getCorrectIds,
+  getPairingSlots,
+  gradeAnswer,
   isAnswerCorrect,
   isAnswerProvided,
   isChoiceQuestion,
+  isGradeableQuestion,
+  isPairingQuestion,
+  parseNumericAnswer,
   questionKind,
   questionKindLabels,
   questionKinds,
   scoreAnswers,
+  toPairings,
   toSelectedIds,
 } from './types.ts';
 export { questionStatuses } from './types.ts';

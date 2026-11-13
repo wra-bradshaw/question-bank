@@ -7,6 +7,7 @@ export { QuizList } from './components/quiz-list.tsx';
 export { AppShell } from './components/app-shell.tsx';
 export { FilterBuilder } from './components/filter-builder.tsx';
 export { MarkdownContent } from './components/markdown-content.tsx';
+export { NumericalResponse, PairingResponse, formatNumericAnswer } from './components/question-response.tsx';
 
 export {
   createFilterFields,
