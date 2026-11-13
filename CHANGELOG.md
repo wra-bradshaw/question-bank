@@ -1,5 +1,11 @@
 # question-bank-framework
 
+## 0.5.1
+
+### Patch Changes
+
+- [`0d72fb6`](https://github.com/wra-bradshaw/question-bank/commit/0d72fb60b461cb6ec237fad16320fe56ac33e5cf) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Quiz answer widgets no longer overflow on narrow screens: choice options containing code blocks or tables, and matching/dropdown rows with long inline math (e.g. relational-algebra expressions), now shrink or scroll inside their own row instead of widening the page.
+
 ## 0.5.0
 
 ### Minor Changes
