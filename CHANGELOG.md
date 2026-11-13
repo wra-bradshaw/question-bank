@@ -1,5 +1,15 @@
 # question-bank-framework
 
+## 0.5.0
+
+### Minor Changes
+
+- [`1ddff61`](https://github.com/wra-bradshaw/question-bank/commit/1ddff61bbddd93c2395b34155f72ce4965729839) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Three new auto-graded question kinds: `numerical` (`numeric: { value, tolerance?, unit? }`; typed answers like `1,756` or `1.2e3` are accepted), `matching` (shared `options` + `items: [{ id, text, correctId }]`), and `dropdown` (`blanks: [{ id, label?, options, correctId }]`, Canvas-style multiple dropdowns). Quizzes render a number input or one select per item/blank, check answers in place with per-item corrections, and the results list shows partial credit (e.g. `Incorrect · 3/5`). `defineBank` validates each kind's fields. Stored quiz answers may now be `Record<string, string>` for matching/dropdown, so the Convex `quizzes` validators were widened — redeploy your Convex functions. New exports: `gradeAnswer`, `isGradeableQuestion`, `isPairingQuestion`, `getPairingSlots`, `toPairings`, `parseNumericAnswer`, plus `NumericalResponse`/`PairingResponse` from `framework/`.
+
+### Patch Changes
+
+- [`1ddff61`](https://github.com/wra-bradshaw/question-bank/commit/1ddff61bbddd93c2395b34155f72ce4965729839) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Wide question content no longer pushes the quiz page past the viewport: the quiz and quiz-list grids use `minmax(0, 1fr)` tracks so figures, code blocks and tables shrink or scroll inside the card, display math scrolls horizontally, long inline code/URLs and titles wrap, and long tag badges wrap on narrow screens.
+
 ## 0.4.0
 
 ### Minor Changes
