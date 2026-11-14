@@ -166,19 +166,21 @@ export function PairingResponse({
             <li
               key={slot.id}
               className={cn(
-                'flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center',
+                // Wraps instead of squeezing: short items sit beside their select, while
+                // wide items (long formulas) take the full row and the select drops below.
+                'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3',
                 state === 'idle' && 'border-gray-200 bg-white',
                 state === 'correct' && 'border-green-300 bg-green-50/50',
                 (state === 'incorrect' || state === 'missing') && 'border-red-300 bg-red-50/50',
               )}
             >
-              <div className="flex min-w-0 flex-1 items-start gap-2">
+              <div className="flex min-w-0 max-w-full flex-[1_1_auto] items-start gap-2">
                 <span className="mt-0.5 w-6 shrink-0 text-sm font-semibold tabular-nums text-gray-500">{index + 1}.</span>
-                <label htmlFor={selectId} className="min-w-0 flex-1 overflow-x-auto text-base leading-7 text-gray-900">
+                <label htmlFor={selectId} className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden text-base leading-7 text-gray-900">
                   <MarkdownContent inline content={label} />
                 </label>
               </div>
-              <div className="flex shrink-0 flex-col gap-1 pl-8 sm:pl-0">
+              <div className="ml-auto flex shrink-0 flex-col gap-1 pl-8 sm:pl-0">
                 <div className="flex items-center gap-2">
                   <OptionSelect
                     id={selectId}

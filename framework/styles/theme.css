@@ -7,6 +7,10 @@
  *   @import 'question-bank-framework/framework/styles/theme.css';
  */
 
+/* KaTeX CSS from the framework's own katex, matching the version that renders
+ * math in MarkdownContent. Don't import katex CSS separately in your app. */
+@import 'katex/dist/katex.min.css';
+
 @theme inline {
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces', Georgia, serif;

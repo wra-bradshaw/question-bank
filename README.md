@@ -36,6 +36,10 @@ Your app owns:
 @source '../node_modules/question-bank-framework'; /* relative to this file */
 ```
 
+`theme.css` also pulls in the KaTeX stylesheet from the framework's own `katex`,
+matching the version that renders math. Don't import `katex/dist/katex.min.css`
+yourself — a mismatched KaTeX version breaks math layout (0.19 renamed its CSS classes).
+
 Text columns sort number-aware ("Q2" before "Q10"). New quizzes keep the
 table's current sort order, so to get source order add a numeric field (e.g.
 `order`) and sort by it, or set it in `defaultSorting`.
