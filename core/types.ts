@@ -56,6 +56,8 @@ export interface DropdownBlank {
   options: QuestionOption[];
   /** Id of the correct option in this blank's `options`. */
   correctId: string;
+  /** Shuffle this blank's options in quizzes. Defaults to the question's `shuffle` (true). */
+  shuffle?: boolean;
 }
 
 /** Expected answer of a numerical question. */
@@ -92,6 +94,14 @@ export interface BaseQuestion {
   blanks?: DropdownBlank[];
   /** Expected number (numerical). */
   numeric?: NumericAnswer;
+  /**
+   * Shuffle option order in quizzes (single/multiple/matching options and
+   * dropdown blank options). Defaults to true. Set false when option order is
+   * meaningful, e.g. "All of the above" or options that reference each other.
+   * The bank grid always shows authored order, so explanations should refer
+   * to options by content, not by letter.
+   */
+  shuffle?: boolean;
   // Subjects extend this interface with their own fields; see template/bank.config.ts.
 }
 
@@ -247,6 +257,14 @@ function validateQuestion(question: BaseQuestion): void {
       throw new Error(`Question "${question.id}" is ${kind} and must not define ${field}.`);
     }
   }
+  if (question.shuffle !== undefined) {
+    if (typeof question.shuffle !== 'boolean') {
+      throw new Error(`Question "${question.id}" has a non-boolean shuffle.`);
+    }
+    if (kind === 'written' || kind === 'numerical') {
+      throw new Error(`Question "${question.id}" is ${kind} and must not define shuffle.`);
+    }
+  }
 
   switch (kind) {
     case 'written':
@@ -304,6 +322,9 @@ function validateQuestion(question: BaseQuestion): void {
         const seen = validateOptionList(question.id, `blank "${blank.id}"`, blank.options);
         if (!seen.has(blank.correctId)) {
           throw new Error(`Question "${question.id}" blank "${blank.id}" has unknown correctId "${blank.correctId}".`);
+        }
+        if (blank.shuffle !== undefined && typeof blank.shuffle !== 'boolean') {
+          throw new Error(`Question "${question.id}" blank "${blank.id}" has a non-boolean shuffle.`);
         }
       }
       return;
@@ -367,6 +388,63 @@ export function getPairingSlots(question: BaseQuestion): PairingSlot[] {
     }));
   }
   return [];
+}
+
+// FNV-1a string hash → 32-bit seed.
+function hashSeed(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+// mulberry32 PRNG: deterministic floats in [0, 1).
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(list: readonly T[], seed: string): T[] {
+  const out = [...list];
+  const random = seededRandom(hashSeed(seed));
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+/**
+ * Presentation copy of a question with its options shuffled, deterministically
+ * for `seed` (e.g. a quiz session id) so the order is stable across reloads
+ * but differs between quizzes. Answers are stored as option ids, so grading is
+ * unaffected. Questions with `shuffle: false` (and blanks with
+ * `shuffle: false`) keep their authored order.
+ */
+export function shuffleQuestionOptions<Q extends BaseQuestion>(question: Q, seed: string): Q {
+  const enabled = question.shuffle !== false;
+  const base = `${seed}:${question.id}`;
+  const kind = questionKind(question);
+  if ((kind === 'single' || kind === 'multiple' || kind === 'matching') && enabled && question.options) {
+    return { ...question, options: seededShuffle(question.options, `${base}:options`) };
+  }
+  if (kind === 'dropdown' && question.blanks) {
+    return {
+      ...question,
+      blanks: question.blanks.map((blank) =>
+        (blank.shuffle ?? enabled) ? { ...blank, options: seededShuffle(blank.options, `${base}:${blank.id}`) } : blank,
+      ),
+    };
+  }
+  return question;
 }
 
 const isRecordAnswer = (answer: QuizAnswer | undefined): answer is Record<string, string> =>

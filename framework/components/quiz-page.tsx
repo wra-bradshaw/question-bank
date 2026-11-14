@@ -16,6 +16,7 @@ import {
   questionKind,
   questionKindLabels,
   scoreAnswers,
+  shuffleQuestionOptions,
   toSelectedIds,
 } from '../../core/types.ts';
 import { Badge } from './ui/badge';
@@ -52,10 +53,17 @@ export function QuizPage() {
   const [titleDraft, setTitleDraft] = useState('');
   const [statusMap, setStatusMap] = useState<QuestionStatusMap>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
+  // Options are shuffled per quiz (seeded by the quiz id), so order is stable
+  // across reloads but differs between quizzes. Answers store option ids.
+  const sessionId = session?.id;
+  const questionIds = session?.questionIds;
   const quizQuestions = useMemo(
     () =>
-      session?.questionIds.map((id) => bank.questionById.get(id)).filter((question) => question !== undefined) ?? [],
-    [session, bank],
+      questionIds
+        ?.map((id) => bank.questionById.get(id))
+        .filter((question) => question !== undefined)
+        .map((question) => shuffleQuestionOptions(question, sessionId ?? '')) ?? [],
+    [questionIds, sessionId, bank],
   );
   const activeIndex = Math.min(session?.currentQuestion ?? 0, Math.max(quizQuestions.length - 1, 0));
   const activeQuestion = quizQuestions[activeIndex];

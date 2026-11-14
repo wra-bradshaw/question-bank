@@ -126,6 +126,14 @@ item is right. `defineBank` validates each question's fields against its kind
 and throws on mismatches (e.g. a `correctId` that isn't one of the options).
 Don't repeat the option list or answer table in `prompt`; the UI renders them.
 
+Quizzes shuffle option order (choice options, the shared matching options and
+each dropdown blank's options), seeded by the quiz id so the order is stable
+across reloads but differs between quizzes. The bank grid keeps authored
+order, so explanations should name options by content, not by letter. Opt out
+with `shuffle: false` on the question, or on a single dropdown blank, when
+order matters ("All of the above", ordered scales, options that reference
+each other).
+
 ## Dev
 
 ```sh

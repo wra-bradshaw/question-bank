@@ -20,6 +20,7 @@ export {
   questionKinds,
   questionStatuses,
   scoreAnswers,
+  shuffleQuestionOptions,
   toPairings,
   toSelectedIds,
 } from './config.tsx';

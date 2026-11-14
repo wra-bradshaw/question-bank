@@ -56,6 +56,7 @@ export {
   questionKindLabels,
   questionKinds,
   scoreAnswers,
+  shuffleQuestionOptions,
   toPairings,
   toSelectedIds,
 } from './types.ts';
