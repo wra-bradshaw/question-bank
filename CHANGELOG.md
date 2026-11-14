@@ -1,5 +1,11 @@
 # question-bank-framework
 
+## 0.6.0
+
+### Minor Changes
+
+- [`52b9149`](https://github.com/wra-bradshaw/question-bank/commit/52b91492f0339a57ef0211048546120873c8112c) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Shuffle option order in quizzes for single, multiple, matching and dropdown questions, seeded by the quiz id so the order stays stable across reloads. Opt out per question (or per dropdown blank) with `shuffle: false`. Adds `shuffleQuestionOptions` to the core exports.
+
 ## 0.5.1
 
 ### Patch Changes
