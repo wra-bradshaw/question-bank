@@ -13,6 +13,7 @@ import {
   useReactTable,
   type ColumnDef,
   type RowSelectionState,
+  type SortingFn,
   type SortingState,
 } from '@tanstack/react-table';
 import { Search } from 'lucide-react';
@@ -51,6 +52,11 @@ type DragSelection = {
   clientY: number;
   moved: boolean;
 };
+
+// Number-aware, case-insensitive text sort: "Q2" before "Q10".
+const naturalCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+const naturalSort: SortingFn<BaseQuestion> = (rowA, rowB, columnId) =>
+  naturalCollator.compare(String(rowA.getValue(columnId) ?? ''), String(rowB.getValue(columnId) ?? ''));
 
 const previewCloseDelay = 180;
 const previewOpenDelay = 400;
@@ -279,13 +285,13 @@ export function QuestionBank() {
 
   useEffect(() => {
     let active = true;
-    getQuestionStatuses(bank.namespace).then((statuses) => {
+    getQuestionStatuses(bank).then((statuses) => {
       if (active) setQuestionStatusMap(statuses);
     });
     return () => {
       active = false;
     };
-  }, [bank.namespace]);
+  }, [bank]);
 
   const filteredQuestions = useMemo(
     () =>
@@ -327,6 +333,7 @@ export function QuestionBank() {
             return <span className="whitespace-normal break-words text-sm text-foreground">{formatCellValue(raw)}</span>;
           },
           enableSorting: sortable,
+          ...(def.type === 'number' ? {} : { sortingFn: naturalSort }),
           size: width,
         } satisfies ColumnDef<BaseQuestion>;
       });
@@ -383,6 +390,7 @@ export function QuestionBank() {
         cell: ({ row }) => (
           <span className="whitespace-normal break-all font-mono text-sm text-muted-foreground">{row.original.id}</span>
         ),
+        sortingFn: naturalSort,
         size: idWidth,
       },
       {
@@ -393,6 +401,7 @@ export function QuestionBank() {
         accessorKey: 'title',
         header: 'Question',
         cell: ({ row }) => <QuestionPreviewPopover question={row.original} />,
+        sortingFn: naturalSort,
       },
       // Absorbent like title: no fixed size, takes up slack on wide screens.
       // minTableWidth (below) always reserves 200px for it, so it can
@@ -407,6 +416,7 @@ export function QuestionBank() {
               id: 'tags',
               accessorFn: (row) => row.tags.join(', '),
               header: 'Tags',
+              sortingFn: naturalSort,
               cell: ({ row }) => (
                 <div className="flex min-w-0 flex-wrap gap-1">
                   {row.original.tags.map((tag) => (
@@ -609,13 +619,23 @@ export function QuestionBank() {
 
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id]);
 
+  // Selected questions in the table's current sort order; any selected rows
+  // hidden by the current filters follow in bank order.
+  const selectedInTableOrder = (exclude: ReadonlySet<string> = new Set()) => {
+    const visible = tableRows.map((row) => row.original);
+    const visibleIds = new Set(visible.map((question) => question.id));
+    return [...visible, ...bank.questions.filter((question) => !visibleIds.has(question.id))].filter(
+      (question) => rowSelection[question.id] && !exclude.has(question.id),
+    );
+  };
+
   const makeQuiz = async () => {
-    const chosenQuestions = bank.questions.filter((question) => rowSelection[question.id]);
+    const chosenQuestions = selectedInTableOrder();
     if (chosenQuestions.length === 0) return;
     setCreatingQuiz(true);
     const title = `${chosenQuestions.length}-question practice set`;
     try {
-      const quiz = await createQuiz(bank.namespace, title, chosenQuestions.map((question) => question.id));
+      const quiz = await createQuiz(bank, title, chosenQuestions.map((question) => question.id));
       await navigate({ to: '/quiz/$quizId', params: { quizId: quiz.id } });
     } finally {
       setCreatingQuiz(false);
@@ -627,17 +647,17 @@ export function QuestionBank() {
     if (!open) return;
     setExistingQuizzes(null);
     setAddToQuizError(false);
-    listQuizzes(bank.namespace).then(setExistingQuizzes, () => setExistingQuizzes([]));
+    listQuizzes(bank).then(setExistingQuizzes, () => setExistingQuizzes([]));
   };
 
   const addToQuiz = async (quiz: QuizSession) => {
     const existing = new Set(quiz.questionIds);
-    const additions = bank.questions.filter((question) => rowSelection[question.id] && !existing.has(question.id));
+    const additions = selectedInTableOrder(existing);
     setAddingToQuizId(quiz.id);
     setAddToQuizError(false);
     try {
       if (additions.length > 0) {
-        await setQuizQuestions(bank.namespace, quiz, [...quiz.questionIds, ...additions.map((question) => question.id)]);
+        await setQuizQuestions(bank, quiz, [...quiz.questionIds, ...additions.map((question) => question.id)]);
       }
       setAddToQuizOpen(false);
       await navigate({ to: '/quiz/$quizId', params: { quizId: quiz.id } });

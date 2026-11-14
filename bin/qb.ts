@@ -121,7 +121,8 @@ if (cmd === 'list' || !cmd) {
     if (!existsSync(to)) cpSync(from, to);
   }
   console.log(`Scaffolded template into ${cwd}`);
-  console.log('Next: pnpm install, then point your routes at bank.config.ts (see template/src/routes/).');
+  console.log('Next: pnpm add -D @cloudflare/vite-plugin wrangler, pnpm install, then point your routes at bank.config.ts (see template/src/routes/).');
+  console.log('wrangler.jsonc + src/server.ts serve the sync store; existing files were left untouched.');
 } else {
   console.error(`Unknown command: ${cmd}\nCommands: list, reveal, init`);
   process.exit(1);

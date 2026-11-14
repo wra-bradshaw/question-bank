@@ -1,117 +1,91 @@
-// Per-question status (unanswered/revisit/complete), Convex + localStorage.
+// Per-question status (unanswered/revisit/complete). localStorage is the
+// working copy; with `sync` set, changes are pushed to the server and merged
+// back (newest `updatedAt` wins).
 // Framework-owned: eject with `qb reveal framework/lib/question-status-storage.ts`.
 
-import { ConvexHttpClient } from 'convex/browser';
-import { convexApi } from './convex-api.ts';
 import { questionStatuses, type QuestionStatus, type QuestionStatusMap } from '../../core/types.ts';
-
-const convexUrl = import.meta.env?.VITE_CONVEX_URL || (import.meta.env?.CONVEX_URL as string | undefined);
-const convexClient = convexUrl ? new ConvexHttpClient(convexUrl) : null;
+import { readLocal, syncEnabled, syncRequest, writeLocal, type StorageTarget } from './sync-client.ts';
 
 type StoredQuestionStatus = {
   status: QuestionStatus;
   updatedAt: number;
+  /** Not yet confirmed by the server. */
   pending: boolean;
 };
 
-type QuestionStatusDocument = {
-  questionId: string;
-  status: QuestionStatus;
-  updatedAt: number;
-};
+type RemoteStatus = { status: QuestionStatus; updatedAt: number };
 
 const keyFor = (namespace: string) => `${namespace}-question-bank-statuses`;
 
 const isQuestionStatus = (value: unknown): value is QuestionStatus =>
   typeof value === 'string' && (questionStatuses as readonly string[]).includes(value);
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
 const readLocalStatuses = (namespace: string): Record<string, StoredQuestionStatus> => {
-  if (typeof window === 'undefined') return {};
-  try {
-    const value: unknown = JSON.parse(window.localStorage.getItem(keyFor(namespace)) ?? '{}');
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-    return Object.fromEntries(
-      Object.entries(value).flatMap(([questionId, entry]) => {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-        const stored = entry as Partial<StoredQuestionStatus>;
-        if (!isQuestionStatus(stored.status) || typeof stored.updatedAt !== 'number') return [];
-        return [
-          [
-            questionId,
-            { status: stored.status, updatedAt: stored.updatedAt, pending: stored.pending === true },
-          ],
-        ];
-      }),
-    );
-  } catch {
-    return {};
-  }
+  const value = readLocal(keyFor(namespace), {}, isObject);
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([questionId, entry]) => {
+      if (!isObject(entry) || !isQuestionStatus(entry.status) || typeof entry.updatedAt !== 'number') return [];
+      return [[questionId, { status: entry.status, updatedAt: entry.updatedAt, pending: entry.pending === true }]];
+    }),
+  );
 };
 
-const writeLocalStatuses = (namespace: string, statuses: Record<string, StoredQuestionStatus>) => {
-  if (typeof window !== 'undefined') window.localStorage.setItem(keyFor(namespace), JSON.stringify(statuses));
-};
+const writeLocalStatuses = (namespace: string, statuses: Record<string, StoredQuestionStatus>) =>
+  writeLocal(keyFor(namespace), statuses);
 
 const toStatusMap = (statuses: Record<string, StoredQuestionStatus>): QuestionStatusMap =>
   Object.fromEntries(Object.entries(statuses).map(([questionId, entry]) => [questionId, entry.status]));
 
-async function syncPendingStatuses(namespace: string, statuses: Record<string, StoredQuestionStatus>) {
-  if (!convexClient) return statuses;
-  await Promise.all(
-    Object.entries(statuses).map(async ([questionId, entry]) => {
-      if (!entry.pending) return;
-      try {
-        const updatedAt = await convexClient.mutation(convexApi.questionStatuses.set, {
-          questionId,
-          status: entry.status,
-        });
-        const latest = readLocalStatuses(namespace);
-        if (latest[questionId]?.pending && latest[questionId]?.updatedAt === entry.updatedAt) {
-          latest[questionId] = { status: entry.status, updatedAt, pending: false };
-          writeLocalStatuses(namespace, latest);
-          statuses[questionId] = latest[questionId];
-        }
-      } catch {
-        // Keep the local status pending so it can be retried later.
-      }
-    }),
-  );
-  return statuses;
-}
-
-export async function getQuestionStatuses(namespace: string): Promise<QuestionStatusMap> {
-  const localStatuses = readLocalStatuses(namespace);
-  if (!convexClient) return toStatusMap(localStatuses);
-  await syncPendingStatuses(namespace, localStatuses);
-  try {
-    const documents = (await convexClient.query(convexApi.questionStatuses.list, {})) as QuestionStatusDocument[];
-    const merged: Record<string, StoredQuestionStatus> = Object.fromEntries(
-      documents.map((document) => [document.questionId, { status: document.status, updatedAt: document.updatedAt, pending: false }]),
-    );
-    for (const [questionId, localStatus] of Object.entries(localStatuses)) {
-      if (localStatus.pending || !merged[questionId]) merged[questionId] = localStatus;
-    }
-    writeLocalStatuses(namespace, merged);
-    return toStatusMap(merged);
-  } catch {
-    return toStatusMap(localStatuses);
+/** Push one status; on success mark it confirmed unless it changed meanwhile. */
+async function pushStatus(target: StorageTarget, questionId: string, entry: StoredQuestionStatus): Promise<void> {
+  const { data } = await syncRequest<RemoteStatus>(target, `/statuses/${encodeURIComponent(questionId)}`, {
+    method: 'PUT',
+    body: { status: entry.status, updatedAt: entry.updatedAt },
+  });
+  const latest = readLocalStatuses(target.namespace);
+  const current = latest[questionId];
+  if (current && current.updatedAt === entry.updatedAt) {
+    latest[questionId] = { status: data.status, updatedAt: data.updatedAt, pending: false };
+    writeLocalStatuses(target.namespace, latest);
   }
 }
 
-export async function setQuestionStatus(namespace: string, questionId: string, status: QuestionStatus): Promise<void> {
-  const statuses = readLocalStatuses(namespace);
-  const localStatus: StoredQuestionStatus = { status, updatedAt: Date.now(), pending: true };
-  statuses[questionId] = localStatus;
-  writeLocalStatuses(namespace, statuses);
-  if (!convexClient) return;
+export async function getQuestionStatuses(target: StorageTarget): Promise<QuestionStatusMap> {
+  const local = readLocalStatuses(target.namespace);
+  if (!syncEnabled(target)) return toStatusMap(local);
   try {
-    const updatedAt = await convexClient.mutation(convexApi.questionStatuses.set, { questionId, status });
-    const latest = readLocalStatuses(namespace);
-    if (latest[questionId]?.pending && latest[questionId]?.updatedAt === localStatus.updatedAt) {
-      latest[questionId] = { status, updatedAt, pending: false };
-      writeLocalStatuses(namespace, latest);
+    await Promise.all(
+      Object.entries(local)
+        .filter(([, entry]) => entry.pending)
+        .map(([questionId, entry]) => pushStatus(target, questionId, entry)),
+    );
+    const { data } = await syncRequest<Record<string, RemoteStatus>>(target, '/statuses');
+    const merged: Record<string, StoredQuestionStatus> = Object.fromEntries(
+      Object.entries(data).map(([questionId, entry]) => [questionId, { ...entry, pending: false }]),
+    );
+    for (const [questionId, entry] of Object.entries(readLocalStatuses(target.namespace))) {
+      const server = merged[questionId];
+      if (!server || entry.updatedAt > server.updatedAt) merged[questionId] = { ...entry, pending: true };
     }
+    writeLocalStatuses(target.namespace, merged);
+    return toStatusMap(merged);
   } catch {
-    // The local copy remains available and will be retried on the next status read.
+    return toStatusMap(readLocalStatuses(target.namespace));
+  }
+}
+
+export async function setQuestionStatus(target: StorageTarget, questionId: string, status: QuestionStatus): Promise<void> {
+  const statuses = readLocalStatuses(target.namespace);
+  const entry: StoredQuestionStatus = { status, updatedAt: Date.now(), pending: true };
+  statuses[questionId] = entry;
+  writeLocalStatuses(target.namespace, statuses);
+  if (!syncEnabled(target)) return;
+  try {
+    await pushStatus(target, questionId, entry);
+  } catch {
+    // Stays pending; retried on the next getQuestionStatuses.
   }
 }

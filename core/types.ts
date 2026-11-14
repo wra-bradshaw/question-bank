@@ -35,6 +35,11 @@ export interface QuestionOption {
   id: string;
   /** Option body. Markdown supported. */
   text: string;
+  /**
+   * Keep this option at its authored position when options are shuffled,
+   * e.g. "None of the above" last. The other options still shuffle around it.
+   */
+  pinned?: boolean;
 }
 
 /** A left-hand row of a matching question, answered from the question's shared `options`. */
@@ -113,6 +118,8 @@ export interface QuizSession {
   currentQuestion: number;
   completed: boolean;
   createdAt: number;
+  /** Last local change (ms). Sync keeps the newer copy. Missing on legacy sessions. */
+  updatedAt?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +186,7 @@ export interface BankSiteConfig {
 
 export interface DefineBankInput<Q extends BaseQuestion = BaseQuestion> {
   site: BankSiteConfig;
-  /** Namespaces localStorage keys + Convex lookups. e.g. "comp20008". */
+  /** Namespaces localStorage keys and the sync store. e.g. "comp20008". */
   namespace: string;
   /** Subject-specific schema. Built-ins (id/title/tags/status) are automatic. */
   fields: BankFieldDef<Q>[];
@@ -197,6 +204,13 @@ export interface DefineBankInput<Q extends BaseQuestion = BaseQuestion> {
   hideTagsColumn?: boolean;
   /** Extra per-question figures, resolved by prompt `![](/figures/…)` etc. */
   publicPath?: string;
+  /**
+   * Server sync for quizzes and question statuses. Point `url` at the
+   * framework's Cloudflare handler (see `question-bank-framework/cloudflare`),
+   * e.g. `{ url: '/api/qb' }`. Without it, data lives only in this browser's
+   * localStorage. localStorage is always kept as an offline cache.
+   */
+  sync?: { url: string };
 }
 
 export interface Bank extends DefineBankInput<BaseQuestion> {
@@ -242,6 +256,9 @@ function validateOptionList(questionId: string, where: string, options: readonly
       throw new Error(`Question "${questionId}" ${where} has a duplicate or empty option id "${option.id}".`);
     }
     seen.add(option.id);
+    if (option.pinned !== undefined && typeof option.pinned !== 'boolean') {
+      throw new Error(`Question "${questionId}" ${where} option "${option.id}" has a non-boolean pinned.`);
+    }
   }
   return seen;
 }
@@ -412,14 +429,16 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function seededShuffle<T>(list: readonly T[], seed: string): T[] {
-  const out = [...list];
+/** Shuffle the unpinned options; pinned options keep their authored index. */
+function seededShuffle(list: readonly QuestionOption[], seed: string): QuestionOption[] {
+  const free = list.filter((option) => option.pinned !== true);
   const random = seededRandom(hashSeed(seed));
-  for (let i = out.length - 1; i > 0; i -= 1) {
+  for (let i = free.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j]!, out[i]!];
+    [free[i], free[j]] = [free[j]!, free[i]!];
   }
-  return out;
+  let next = 0;
+  return list.map((option) => (option.pinned === true ? option : free[next++]!));
 }
 
 /**
@@ -427,7 +446,8 @@ function seededShuffle<T>(list: readonly T[], seed: string): T[] {
  * for `seed` (e.g. a quiz session id) so the order is stable across reloads
  * but differs between quizzes. Answers are stored as option ids, so grading is
  * unaffected. Questions with `shuffle: false` (and blanks with
- * `shuffle: false`) keep their authored order.
+ * `shuffle: false`) keep their authored order; `pinned` options keep their
+ * authored position while the rest shuffle.
  */
 export function shuffleQuestionOptions<Q extends BaseQuestion>(question: Q, seed: string): Q {
   const enabled = question.shuffle !== false;

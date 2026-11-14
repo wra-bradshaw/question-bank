@@ -21,7 +21,16 @@ export {
 export type { FilterField, FilterMatch, FilterOperatorId, FilterRule } from './lib/question-filter.ts';
 
 export { createQuestionFilterStore, useQuestionFilterStore } from './lib/question-filter-store.ts';
-export { createQuiz, deleteQuiz, getQuiz, listQuizzes, saveQuizLocally, saveQuizProgress } from './lib/quiz-storage.ts';
+export {
+  createQuiz,
+  deleteQuiz,
+  getQuiz,
+  listQuizzes,
+  saveQuiz,
+  saveQuizLocally,
+  setQuizQuestions,
+  syncQuiz,
+} from './lib/quiz-storage.ts';
 export { getQuestionStatuses, setQuestionStatus } from './lib/question-status-storage.ts';
-export { convexApi } from './lib/convex-api.ts';
+export type { StorageTarget } from './lib/sync-client.ts';
 export { cn } from './lib/utils.ts';

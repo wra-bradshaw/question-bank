@@ -25,6 +25,8 @@ export const bank = defineBank({
     description: 'A searchable, section-classified question bank built from COMP20008 past exams.',
   },
   namespace: 'comp20008',
+  // Sync quizzes + statuses to the Durable Object served by src/server.ts.
+  sync: { url: '/api/qb' },
   fields: [
     {
       id: 'year',

@@ -1,0 +1,16 @@
+// Cloudflare Workers config. `pnpm dev` runs this locally in workerd (via
+// @cloudflare/vite-plugin) and persists the sync store to .wrangler/state;
+// `pnpm build && wrangler deploy` publishes it. Rename "name" for your bank.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "question-bank",
+  "compatibility_date": "2026-11-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/server.ts",
+  "observability": { "enabled": true },
+  // Quizzes + question statuses: one SQLite-backed Durable Object per bank namespace.
+  "durable_objects": {
+    "bindings": [{ "name": "QB_STORE", "class_name": "QuestionBankStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuestionBankStore"] }]
+}

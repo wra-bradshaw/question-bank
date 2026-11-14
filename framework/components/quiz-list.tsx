@@ -20,7 +20,7 @@ export function QuizList() {
 
   useEffect(() => {
     let active = true;
-    listQuizzes(bank.namespace).then((items) => {
+    listQuizzes(bank).then((items) => {
       if (active) setQuizzes(items);
     }).finally(() => {
       if (active) setLoading(false);
@@ -28,13 +28,13 @@ export function QuizList() {
     return () => {
       active = false;
     };
-  }, [bank.namespace]);
+  }, [bank]);
 
   const removeQuiz = async (quiz: QuizSession) => {
     setDeletingId(quiz.id);
     setDeleteError(false);
     try {
-      await deleteQuiz(bank.namespace, quiz.id);
+      await deleteQuiz(bank, quiz.id);
       setQuizzes((current) => current.filter((item) => item.id !== quiz.id));
     } catch {
       setDeleteError(true);
@@ -44,7 +44,7 @@ export function QuizList() {
   };
 
   const saveQuestions = async (quiz: QuizSession, questionIds: string[]) => {
-    const updated = await setQuizQuestions(bank.namespace, quiz, questionIds);
+    const updated = await setQuizQuestions(bank, quiz, questionIds);
     setQuizzes((current) => current.map((item) => (item.id === updated.id ? updated : item)));
   };
 

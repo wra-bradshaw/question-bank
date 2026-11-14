@@ -26,7 +26,7 @@ import { MarkdownContent } from './markdown-content';
 import { formatNumericAnswer, NumericalResponse, optionLetter, PairingResponse } from './question-response';
 import { setQuestionStatus, getQuestionStatuses } from '../lib/question-status-storage.ts';
 import { questionStatusLabels } from '../lib/question-filter.ts';
-import { getQuiz, saveQuizLocally, saveQuizProgress } from '../lib/quiz-storage.ts';
+import { getQuiz, saveQuizLocally, syncQuiz } from '../lib/quiz-storage.ts';
 import { cn } from '../lib/utils.ts';
 
 const questionStatusStyles: Record<QuestionStatus, string> = {
@@ -68,39 +68,40 @@ export function QuizPage() {
   const activeIndex = Math.min(session?.currentQuestion ?? 0, Math.max(quizQuestions.length - 1, 0));
   const activeQuestion = quizQuestions[activeIndex];
 
+  // The session as loaded; not saved back, so merely opening a quiz never
+  // bumps its updatedAt.
+  const loadedSession = useRef<QuizSession | null>(null);
+
   useEffect(() => {
     let active = true;
     setShownAnswerId(null);
     setChecked({});
-    getQuiz(bank.namespace, quizId).then((quiz) => {
-      if (active) setSession(quiz);
+    getQuiz(bank, quizId).then((quiz) => {
+      if (!active) return;
+      loadedSession.current = quiz;
+      setSession(quiz);
     }).finally(() => {
       if (active) setLoading(false);
     });
-    getQuestionStatuses(bank.namespace).then((statuses) => {
+    getQuestionStatuses(bank).then((statuses) => {
       if (active) setStatusMap(statuses);
     });
     return () => {
       active = false;
     };
-  }, [quizId, bank.namespace]);
+  }, [quizId, bank]);
 
   useEffect(() => {
-    if (!session) return;
-    saveQuizLocally(bank.namespace, session);
-    if (session.id.startsWith('local_')) return;
+    if (!session || session === loadedSession.current) return;
+    // Local copy immediately; server push debounced.
+    const saved = saveQuizLocally(bank, session);
+    if (!bank.sync) return;
     setSaving(true);
     const timeout = window.setTimeout(() => {
-      saveQuizProgress(
-        bank.namespace,
-        session,
-        { title: session.title, answers: session.answers, currentQuestion: session.currentQuestion, completed: session.completed },
-      )
-        .then(() => setSaving(false))
-        .catch(() => setSaving(false));
+      void syncQuiz(bank, saved).finally(() => setSaving(false));
     }, 500);
     return () => window.clearTimeout(timeout);
-  }, [session, bank.namespace]);
+  }, [session, bank]);
 
   useEffect(() => {
     if (editingTitle) {
@@ -149,7 +150,7 @@ export function QuizPage() {
 
   const updateQuestionStatus = (status: QuestionStatus) => {
     if (!activeQuestion) return;
-    void setQuestionStatus(bank.namespace, activeQuestion.id, status);
+    void setQuestionStatus(bank, activeQuestion.id, status);
     setStatusMap((current) => ({ ...current, [activeQuestion.id]: status }));
     setShownAnswerId(null);
     setSession((current) =>

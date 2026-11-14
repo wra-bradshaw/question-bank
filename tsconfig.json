@@ -1,5 +1,7 @@
 {
   "include": ["core/**/*.ts", "core/**/*.tsx", "framework/**/*.ts", "framework/**/*.tsx", "template/**/*.ts", "bin/**/*.ts"],
+  // Template Worker/Vite entries import app-only deps (TanStack Start, Cloudflare plugin).
+  "exclude": ["template/src/server.ts", "template/vite.config.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

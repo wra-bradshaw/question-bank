@@ -2,7 +2,8 @@
 
 Framework-style question bank (generalised from the COMP20008 bank). Downstream
 subjects bring their own `bank.config.ts` + `content/`; the framework ships the
-grid, filter DSL, quizzes, and Convex bindings as an npm package.
+grid, filter DSL, quizzes, and a Cloudflare Durable Object sync store as an npm
+package.
 
 Inspired by Vike's eject model: the stable core (`core/`) is never ejected;
 everything under `framework/` can be ejected into your repo and owned.
@@ -35,9 +36,42 @@ Your app owns:
 @source '../node_modules/question-bank-framework'; /* relative to this file */
 ```
 
+Text columns sort number-aware ("Q2" before "Q10"). New quizzes keep the
+table's current sort order, so to get source order add a numeric field (e.g.
+`order`) and sort by it, or set it in `defaultSorting`.
+
 Pass `hideTagsColumn: true` to `defineBank` when tags merely duplicate
 dedicated fields (every tag equals a topic/type value already in its own
 column). Tags still feed free-text search.
+
+## Sync (Cloudflare Durable Objects)
+
+Without `sync`, quizzes and question statuses live only in the browser's
+localStorage. With `sync: { url: '/api/qb' }` in `defineBank`, they are also
+stored in a SQLite-backed Durable Object (one per bank namespace), and
+localStorage stays as an offline cache: changes are saved locally first,
+pushed to the server, and reconciled on load (newest `updatedAt` wins; deleted
+quizzes are tombstoned so stale caches can't bring them back). Quizzes that
+existed only in localStorage are uploaded on the first load with sync on.
+
+`qb init` scaffolds the three pieces:
+
+- `wrangler.jsonc` — Worker config with the `QB_STORE` Durable Object binding
+  and its `new_sqlite_classes` migration.
+- `src/server.ts` — Worker entry: `handleQuestionBankRequest(request, env)`
+  answers `/api/qb/*` and returns `null` for everything else, which falls
+  through to TanStack Start. It also re-exports `QuestionBankStore`.
+- `vite.config.ts` — adds `cloudflare({ viteEnvironment: { name: 'ssr' } })`.
+
+```sh
+pnpm add -D @cloudflare/vite-plugin wrangler
+pnpm dev                       # workerd via Miniflare; data persists in .wrangler/state
+pnpm build && wrangler deploy  # same code on Cloudflare
+```
+
+Add `.wrangler/` to `.gitignore`. The API has no auth of its own: before a
+public deploy, pass `authorize` to `handleQuestionBankRequest` (e.g. verify a
+Cloudflare Access JWT) or put the Worker behind Cloudflare Access.
 
 ## Reveal (eject) files
 
@@ -70,7 +104,7 @@ fields/columns/searchable flags first; eject when you need custom UI.
   package), then customize.
 
 We follow Vike: `core/` (types, `defineBank`, `BankProvider`, `useBank`) is the
-stable core; `framework/` (components/lib/routes/convex) is the ejectable
+stable core; `framework/` (components/lib/cloudflare) is the ejectable
 extension layer; `qb reveal` is the copy command.
 
 ## Layout
@@ -79,7 +113,8 @@ extension layer; `qb reveal` is the copy command.
   `defineBank`), `config.tsx` (`BankProvider`, `useBank`).
 - `framework/` — ejectable: `components/` (grid, quiz, filter builder,
   shadcn `ui/`), `lib/` (generic filter DSL, namespaced quiz/status stores,
-  `convex-api.ts`), `convex/` (quizzes + questionStatuses tables).
+  `sync-client.ts`), `cloudflare/` (sync Durable Object + request handler,
+  exported as `question-bank-framework/cloudflare`).
 - `template/` — starter: `bank.config.ts` (COMP20008-like schema),
   `content/` example, `src/routes/` thin wrappers.
 - `bin/qb.ts` (source; compiled to `bin/qb.js` with `pnpm build:bin`) — `list` / `reveal` / `init`.
@@ -89,7 +124,8 @@ extension layer; `qb reveal` is the copy command.
 ```ts
 defineBank({
   site: { title: '…', brand: 'fieldnotes' },
-  namespace: 'comp20008', // localStorage keys + Convex lookups
+  namespace: 'comp20008', // localStorage keys + sync store
+  sync: { url: '/api/qb' }, // optional: back quizzes/statuses up to the Worker
   fields: [
     { id: 'year', label: 'Year', type: 'select', getValue: (q) => String(q['year'] ?? '') },
     { id: 'marks', label: 'Marks', type: 'number', getValue: (q) => q['marks'] ?? null },
@@ -132,7 +168,8 @@ across reloads but differs between quizzes. The bank grid keeps authored
 order, so explanations should name options by content, not by letter. Opt out
 with `shuffle: false` on the question, or on a single dropdown blank, when
 order matters ("All of the above", ordered scales, options that reference
-each other).
+each other). To keep just one option in place ("None of the above" last),
+mark it `pinned: true` instead; the other options still shuffle around it.
 
 ## Dev
 
