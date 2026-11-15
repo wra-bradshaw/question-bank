@@ -1,16 +1,27 @@
 // Mock-exam clock: <ExamTimerBadge> shows the mock time in the header while an
-// exam is running; <ExamTimerPage> (the /timer route) is the only place to start it.
+// exam is running; <ExamTimerPage> (the /timer route) is the only place to start,
+// pause, resume or stop it.
 // Framework-owned: eject with `qb reveal framework/components/exam-timer.tsx`.
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BookOpen, PenLine } from 'lucide-react';
+import { BookOpen, Pause, PenLine } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import { Button } from './ui/button';
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
 import { toast } from './ui/toast';
-import { examState, formatClock, MINUTE, setExamTimer, useExamNow, useExamTimer, type ExamTimer } from '../lib/exam-timer.ts';
+import {
+  examState,
+  formatClock,
+  MINUTE,
+  pauseExamTimer,
+  resumeExamTimer,
+  setExamTimer,
+  useExamNow,
+  useExamTimer,
+  type ExamTimer,
+} from '../lib/exam-timer.ts';
 
 /** Moments to announce, in minutes after Start. */
 const milestones = ({ readingMinutes: reading, writingMinutes: writing }: ExamTimer) => {
@@ -43,14 +54,15 @@ export function ExamTimerBadge() {
   }, [timer?.startedAt, state?.elapsed]);
 
   if (!state || state.phase === 'over') return null;
-  const Icon = state.phase === 'reading' ? BookOpen : PenLine;
+  const Icon = state.paused ? Pause : state.phase === 'reading' ? BookOpen : PenLine;
+  const label = `${state.phase === 'reading' ? 'Reading time' : 'Writing time'}${state.paused ? ' (paused)' : ''}`;
   return (
     <span
-      className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-foreground"
-      title={state.phase === 'reading' ? 'Reading time' : 'Writing time'}
+      className={`flex items-center gap-1.5 text-sm font-medium tabular-nums ${state.paused ? 'text-muted-foreground' : 'text-foreground'}`}
+      title={label}
     >
       <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
-      <span className="sr-only">{state.phase === 'reading' ? 'Reading time' : 'Writing time'}, mock exam time </span>
+      <span className="sr-only">{label}, mock exam time </span>
       {state.clock}
     </span>
   );
@@ -74,6 +86,7 @@ export function ExamTimerPage({
   const timer = useExamTimer(namespace);
   const now = useExamNow(timer);
   const running = timer !== null && examState(timer, now).phase !== 'over';
+  const paused = running && timer.pausedAt !== undefined;
   const [start, setStart] = useState(defaultStart);
   const [reading, setReading] = useState(String(defaultReadingMinutes));
   const [writing, setWriting] = useState(String(defaultWritingMinutes));
@@ -121,6 +134,15 @@ export function ExamTimerPage({
           </CardContent>
           <CardFooter className="gap-2">
             <Button type="submit">{running ? 'Restart' : 'Start'}</Button>
+            {running && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => (paused ? resumeExamTimer(namespace, timer) : pauseExamTimer(namespace, timer))}
+              >
+                {paused ? 'Resume' : 'Pause'}
+              </Button>
+            )}
             {running && (
               <Button type="button" variant="ghost" onClick={() => setExamTimer(namespace, null)}>
                 Stop

@@ -60,7 +60,9 @@ time (e.g. 08:30) and reading/writing minutes, then press Start: the top right
 of the header shows the mock exam time, starting at 08:30, with a book icon
 during reading time and a pen during writing time. It updates once a minute.
 Toasts announce reading time over, 30 and 10 minutes remaining, and exam over;
-the clock disappears once the exam is over. The timer lives in localStorage,
+the clock disappears once the exam is over. Pause freezes the clock (the
+header shows a pause icon) and Resume carries on from the same mock time, so
+breaks don't eat into the exam. The timer lives in localStorage,
 so it survives reloads and shows in every open tab.
 
 ## Sync (Cloudflare Durable Objects)
