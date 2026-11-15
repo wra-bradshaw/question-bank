@@ -5,6 +5,7 @@ export { QuestionBank } from './components/question-bank.tsx';
 export { QuizPage } from './components/quiz-page.tsx';
 export { QuizList } from './components/quiz-list.tsx';
 export { AppShell } from './components/app-shell.tsx';
+export { ExamTimerBadge, ExamTimerPage } from './components/exam-timer.tsx';
 export { FilterBuilder } from './components/filter-builder.tsx';
 export { MarkdownContent } from './components/markdown-content.tsx';
 export { NumericalResponse, PairingResponse, formatNumericAnswer } from './components/question-response.tsx';
@@ -32,5 +33,7 @@ export {
   syncQuiz,
 } from './lib/quiz-storage.ts';
 export { getQuestionStatuses, setQuestionStatus } from './lib/question-status-storage.ts';
+export { examPhase, setExamTimer, useExamTimer } from './lib/exam-timer.ts';
+export type { ExamPhase, ExamTimer } from './lib/exam-timer.ts';
 export type { StorageTarget } from './lib/sync-client.ts';
 export { cn } from './lib/utils.ts';

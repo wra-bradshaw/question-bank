@@ -4,22 +4,26 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { cn } from '../lib/utils.ts';
+import { ExamTimerBadge } from './exam-timer.tsx';
 
 export function AppShell({
   children,
   brand,
   homeLabel = 'Question bank',
   quizzesLabel = 'My quizzes',
+  timerLabel = 'Timer',
 }: {
   children: ReactNode;
   brand: string;
   homeLabel?: string;
   quizzesLabel?: string;
+  timerLabel?: string;
 }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigation = [
     { label: homeLabel, to: '/' },
     { label: quizzesLabel, to: '/quizzes' },
+    { label: timerLabel, to: '/timer' },
   ] as const;
   const isQuestionBank = pathname === '/';
 
@@ -44,6 +48,9 @@ export function AppShell({
               );
             })}
           </nav>
+          <div className="ml-auto">
+            <ExamTimerBadge />
+          </div>
         </div>
       </header>
       <main className={cn('w-full flex-1', isQuestionBank ? 'flex min-h-0 flex-col overflow-hidden' : 'mx-auto max-w-6xl px-4 py-8')}>

@@ -48,6 +48,16 @@ Pass `hideTagsColumn: true` to `defineBank` when tags merely duplicate
 dedicated fields (every tag equals a topic/type value already in its own
 column). Tags still feed free-text search.
 
+## Mock-exam timer
+
+The header has a **Timer** link to `/timer` (add `src/routes/timer.tsx`
+rendering `<ExamTimerPage />`, as in the template). Set a start time and
+reading/writing minutes there; the timer is kept in localStorage, so it
+survives reloads and shows in every open tab. While it's running, the top
+right of the header shows the minutes left with a book (reading) or pen
+(writing) icon. It updates once a minute and disappears when the exam ends or
+the timer is cleared.
+
 ## Sync (Cloudflare Durable Objects)
 
 Without `sync`, quizzes and question statuses live only in the browser's
