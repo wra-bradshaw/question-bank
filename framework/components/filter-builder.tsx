@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Circle, Filter, Hash, Plus, Tags, Type, X } from 'lucide-react'
+import { ChevronDown, Circle, Hash, ListFilter, Plus, Tags, Type, X, type LucideIcon } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
@@ -31,7 +31,7 @@ import {
 } from '../lib/question-filter.ts'
 import { cn } from '../lib/utils.ts'
 
-const fieldIcons: Record<FilterFieldType, typeof Filter> = {
+const fieldIcons: Record<FilterFieldType, LucideIcon> = {
   text: Type,
   number: Hash,
   select: Circle,
@@ -70,26 +70,24 @@ export function FilterBuilder({
         if (!nextOpen) setAdding(false)
       }}
     >
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="h-11 gap-2 text-base">
-          <Filter className="size-4" />
-          Filter
-          {filters.length > 0 && (
-            <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 text-xs tabular-nums">
-              {filters.length}
-            </Badge>
-          )}
-        </Button>
+      <PopoverTrigger render={<Button variant="outline" />}>
+        <ListFilter aria-hidden="true" data-icon="inline-start" className="text-muted-foreground" />
+        Filter
+        {filters.length > 0 && (
+          <Badge variant="secondary" className="min-w-5 px-1.5 tabular-nums">
+            {filters.length}
+          </Badge>
+        )}
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[min(780px,calc(100vw-2rem))] p-0">
-        <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-          <p className="text-sm font-semibold">Filters</p>
+      <PopoverContent align="start" className="w-[min(780px,calc(100vw-2rem))] gap-0 p-0">
+        <div className="flex h-10 items-center justify-between gap-2 border-b px-3">
+          <p className="text-sm font-medium">Filters</p>
           {filters.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={onClear}>Clear all</Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={onClear}>Clear all</Button>
           )}
         </div>
 
-        <div className="space-y-1 px-3 py-3">
+        <div className="flex flex-col p-2">
           {filters.length === 0 ? (
             <PropertyPicker fields={fields} onPick={onAdd} />
           ) : (
@@ -110,7 +108,7 @@ export function FilterBuilder({
         {filters.length > 0 && (
           <div className="border-t p-2">
             {adding ? (
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <PropertyPicker
                   fields={fields}
                   onPick={(field) => {
@@ -131,10 +129,10 @@ export function FilterBuilder({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start gap-2"
+                className="w-full justify-start text-muted-foreground"
                 onClick={() => setAdding(true)}
               >
-                <Plus className="size-4" />
+                <Plus aria-hidden="true" />
                 Add filter
               </Button>
             )}
@@ -154,8 +152,8 @@ function PropertyPicker({
 }) {
   return (
     <div>
-      <p className="px-2 pb-1 pt-1 text-xs font-medium text-muted-foreground">Filter by</p>
-      <div className="grid gap-0.5">
+      <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Filter by</p>
+      <div className="grid gap-px">
         {fields.map((field) => {
           const Icon = fieldIcons[field.type]
           return (
@@ -163,9 +161,9 @@ function PropertyPicker({
               key={field.id}
               type="button"
               onClick={() => onPick(field.id)}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent"
+              className="flex h-8 items-center gap-2 rounded-md px-2 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <Icon className="size-4 shrink-0 text-muted-foreground" />
+              <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
               <span className="flex-1 truncate">{field.label}</span>
               <span className="text-xs text-muted-foreground">{fieldTypeLabels[field.type]}</span>
             </button>
@@ -185,28 +183,31 @@ function MatchToggle({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={`Match ${match === 'and' ? 'all' : 'any'} filters`}
-          className="my-1 ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          {match === 'and' ? 'And' : 'Or'}
-          <ChevronDown className="size-3" />
-        </button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="xs"
+            aria-label={`Match ${match === 'and' ? 'all' : 'any'} filters`}
+            className="my-1 ml-1 text-muted-foreground"
+          />
+        }
+      >
+        {match === 'and' ? 'And' : 'Or'}
+        <ChevronDown aria-hidden="true" data-icon="inline-end" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent align="start" className="w-48">
         <DropdownMenuRadioGroup
           value={match}
           onValueChange={(value) => onChange(value as FilterMatch)}
         >
           <DropdownMenuRadioItem value="and">
             And
-            <span className="text-muted-foreground">— all filters must match</span>
+            <span className="ml-auto text-xs text-muted-foreground">all must match</span>
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="or">
             Or
-            <span className="text-muted-foreground">— at least one must match</span>
+            <span className="ml-auto text-xs text-muted-foreground">any can match</span>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
@@ -231,10 +232,12 @@ function FilterRuleRow({
   const needsValue = rule.operator !== 'isEmpty' && rule.operator !== 'isNotEmpty'
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border p-2">
       <Select
         value={rule.field}
+        items={fields.map((candidate) => ({ value: candidate.id, label: candidate.label }))}
         onValueChange={(value) => {
+          if (value === null) return
           const nextField = fields.find((candidate) => candidate.id === value)
           if (!nextField) return
           onChange(rule.id, {
@@ -244,7 +247,7 @@ function FilterRuleRow({
           })
         }}
       >
-        <SelectTrigger size="sm" aria-label="Filter field" className="w-[132px]">
+        <SelectTrigger aria-label="Filter field" className="w-32">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -256,14 +259,16 @@ function FilterRuleRow({
 
       <Select
         value={rule.operator}
-        onValueChange={(value) =>
+        items={field.operators.map((operator) => ({ value: operator, label: operatorLabels[operator] }))}
+        onValueChange={(value) => {
+          if (value === null) return
           onChange(rule.id, {
             operator: value as FilterOperatorId,
             value: value === 'between' ? [] : rule.value,
           })
-        }
+        }}
       >
-        <SelectTrigger size="sm" aria-label="Filter operator" className="w-[172px]">
+        <SelectTrigger aria-label="Filter operator" className="w-44">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -273,7 +278,7 @@ function FilterRuleRow({
         </SelectContent>
       </Select>
 
-      <div className="min-w-[140px] flex-1">
+      <div className="min-w-36 flex-1">
         {needsValue ? (
           <FilterValueEditor
             field={field}
@@ -287,11 +292,12 @@ function FilterRuleRow({
 
       <Button
         variant="ghost"
-        size="icon-sm"
+        size="icon"
         aria-label="Remove filter"
+        className="text-muted-foreground"
         onClick={() => onRemove(rule.id)}
       >
-        <X className="size-4" />
+        <X aria-hidden="true" />
       </Button>
     </div>
   )
@@ -315,7 +321,6 @@ function FilterValueEditor({
             inputMode="decimal"
             aria-label="Minimum value"
             placeholder="Min"
-            className="h-8"
             value={rule.value[0] ?? ''}
             onChange={(event) => onChange([event.target.value, rule.value[1] ?? ''])}
           />
@@ -325,7 +330,6 @@ function FilterValueEditor({
             inputMode="decimal"
             aria-label="Maximum value"
             placeholder="Max"
-            className="h-8"
             value={rule.value[1] ?? ''}
             onChange={(event) => onChange([rule.value[0] ?? '', event.target.value])}
           />
@@ -339,7 +343,6 @@ function FilterValueEditor({
         inputMode="decimal"
         aria-label={`${field.label} value`}
         placeholder={field.placeholder ?? 'Value'}
-        className="h-8"
         value={rule.value[0] ?? ''}
         onChange={(event) => onChange([event.target.value])}
       />
@@ -351,7 +354,6 @@ function FilterValueEditor({
       <Input
         aria-label={`${field.label} value`}
         placeholder={field.placeholder ?? 'Type a value…'}
-        className="h-8"
         value={rule.value[0] ?? ''}
         onChange={(event) => onChange([event.target.value])}
       />
@@ -403,20 +405,21 @@ function ValuePicker({
         if (!nextOpen) setQuery('')
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            'h-8 w-full justify-between font-normal',
-            selected.length === 0 && 'text-muted-foreground',
-          )}
-        >
-          <span className="truncate">{label}</span>
-          <ChevronDown className="size-4 shrink-0 opacity-60" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            className={cn(
+              'w-full justify-between border-input font-normal',
+              selected.length === 0 && 'text-muted-foreground',
+            )}
+          />
+        }
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown aria-hidden="true" className="text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-0">
+      <PopoverContent align="start" className="w-64 gap-0 p-0">
         {showSearch && (
           <div className="border-b p-2">
             <Input
@@ -425,7 +428,6 @@ function ValuePicker({
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search values…"
               aria-label={`Search ${field.label} values`}
-              className="h-8"
             />
           </div>
         )}
@@ -438,7 +440,7 @@ function ValuePicker({
               return (
                 <div
                   key={option.value}
-                  className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                  className="flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-sm hover:bg-muted/50"
                   onClick={() => toggle(option.value)}
                 >
                   <Checkbox

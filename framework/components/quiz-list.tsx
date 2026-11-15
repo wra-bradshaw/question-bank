@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ListOrdered, Trash2 } from 'lucide-react';
+import { ListOrdered, Plus, Trash2 } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import type { QuizSession } from '../../core/types.ts';
 import { isAnswerProvided, scoreAnswers } from '../../core/types.ts';
@@ -49,27 +49,25 @@ export function QuizList() {
   };
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="m-0 text-3xl font-bold tracking-tight text-gray-900">My quizzes</h1>
-          <p className="mt-2 text-base text-gray-600">Pick up where you left off. Your answers are saved as you go.</p>
-        </div>
-        <Button asChild>
-          <Link to="/">Build a quiz</Link>
+    <div className="grid gap-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">My quizzes</h1>
+        <Button render={<Link to="/" />} nativeButton={false}>
+          <Plus data-icon="inline-start" aria-hidden="true" />
+          New quiz
         </Button>
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-sm text-gray-600">Loading your quizzes...</div>
+        <p className="py-16 text-center text-sm text-muted-foreground">Loading your quizzes…</p>
       ) : quizzes.length > 0 ? (
-        <div>
+        <div className="grid gap-3">
           {deleteError && (
-            <p role="alert" className="mb-3 text-sm text-red-700">
+            <p role="alert" className="text-sm text-destructive">
               Could not delete that quiz. Please try again.
             </p>
           )}
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {quizzes.map((quiz) => {
               const questions = quiz.questionIds
                 .map((id) => bank.questionById.get(id))
@@ -78,58 +76,65 @@ export function QuizList() {
                 isAnswerProvided(question, quiz.answers[question.id]),
               ).length;
               const score = scoreAnswers(questions, quiz.answers);
+              const total = quiz.questionIds.length;
+              const progress = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
               return (
-                <div key={quiz.id} className="group relative">
+                <li key={quiz.id} className="group relative">
                   <Link
                     to="/quiz/$quizId"
                     params={{ quizId: quiz.id }}
-                    className="block rounded-xl border border-gray-200 bg-white p-5 transition-colors hover:border-gray-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500"
+                    className="flex h-full flex-col gap-4 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
-                    <h2 className="m-0 break-words pr-16 text-lg font-semibold text-gray-900">{quiz.title}</h2>
-                    <p className="mt-2 text-sm text-gray-700">
-                      {quiz.questionIds.length} {quiz.questionIds.length === 1 ? 'question' : 'questions'}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      {answeredCount} of {quiz.questionIds.length} answered
-                      {score.gradeable > 0 && ` • ${score.correct}/${score.gradeable} correct`}
-                    </p>
+                    <div className="pr-16">
+                      <h2 className="text-sm font-semibold break-words">{quiz.title}</h2>
+                      <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                        {total} {total === 1 ? 'question' : 'questions'}
+                        {score.gradeable > 0 && ` · ${score.correct}/${score.gradeable} correct`}
+                      </p>
+                    </div>
+                    <div className="mt-auto grid gap-1.5">
+                      <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                        <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
+                      </div>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {answeredCount} of {total} answered
+                      </p>
+                    </div>
                   </Link>
-                  <div className="absolute right-3 top-3 flex gap-1.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100">
+                  <div className="absolute top-3 right-3 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 focus-within:opacity-100">
                     <Button
                       type="button"
-                      variant="outline"
-                      size="icon-xs"
+                      variant="ghost"
+                      size="icon-sm"
                       aria-label={`Reorder questions in ${quiz.title}`}
                       title="Reorder or remove questions"
                       onClick={() => setEditingQuiz(quiz)}
-                      className="rounded-full bg-white shadow-sm"
                     >
                       <ListOrdered aria-hidden="true" />
                     </Button>
                     <Button
                       type="button"
-                      variant="outline"
-                      size="icon-xs"
+                      variant="ghost"
+                      size="icon-sm"
                       aria-label={`Delete ${quiz.title}`}
                       title="Delete quiz"
                       disabled={deletingId === quiz.id}
                       onClick={() => removeQuiz(quiz)}
-                      className="rounded-full border-red-200 bg-white text-red-600 shadow-sm hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       ) : (
-        <div className="mx-auto max-w-xl py-16 text-center">
-          <h2 className="m-0 text-xl font-semibold text-gray-900">No quizzes yet</h2>
-          <p className="mt-2 text-base text-gray-600">Choose questions from the bank and turn them into a quiz that remembers your progress.</p>
-          <Button asChild className="mt-6">
-            <Link to="/">Browse questions</Link>
+        <div className="flex flex-col items-center rounded-xl border border-dashed px-6 py-16 text-center">
+          <p className="text-sm text-muted-foreground">No quizzes yet</p>
+          <Button render={<Link to="/" />} nativeButton={false} className="mt-4">
+            Browse questions
           </Button>
         </div>
       )}

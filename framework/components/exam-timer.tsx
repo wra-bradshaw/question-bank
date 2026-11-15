@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { BookOpen, PenLine } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import { Button } from './ui/button';
+import { Card, CardContent, CardFooter } from './ui/card';
+import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
 import { toast } from './ui/toast';
 import { examState, formatClock, MINUTE, setExamTimer, useExamNow, useExamTimer, type ExamTimer } from '../lib/exam-timer.ts';
@@ -44,10 +46,10 @@ export function ExamTimerBadge() {
   const Icon = state.phase === 'reading' ? BookOpen : PenLine;
   return (
     <span
-      className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-700"
+      className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-foreground"
       title={state.phase === 'reading' ? 'Reading time' : 'Writing time'}
     >
-      <Icon aria-hidden="true" className="size-4" />
+      <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
       <span className="sr-only">{state.phase === 'reading' ? 'Reading time' : 'Writing time'}, mock exam time </span>
       {state.clock}
     </span>
@@ -94,32 +96,39 @@ export function ExamTimerPage({
     });
   };
 
-  const field = 'grid gap-1.5 text-sm font-medium text-gray-700';
   return (
-    <div className="grid max-w-sm gap-6">
-      <h1 className="m-0 text-3xl font-bold tracking-tight text-gray-900">Timer</h1>
-      <form onSubmit={submit} className="grid gap-4">
-        <label className={field}>
-          Exam start time
-          <Input type="time" required value={start} onChange={(event) => setStart(event.target.value)} />
-        </label>
-        <label className={field}>
-          Reading minutes
-          <Input type="number" min={0} required value={reading} onChange={(event) => setReading(event.target.value)} />
-        </label>
-        <label className={field}>
-          Writing minutes
-          <Input type="number" min={0} required value={writing} onChange={(event) => setWriting(event.target.value)} />
-        </label>
-        <div className="flex gap-2">
-          <Button type="submit">{running ? 'Restart' : 'Start'}</Button>
-          {running && (
-            <Button type="button" variant="outline" onClick={() => setExamTimer(namespace, null)}>
-              Stop
-            </Button>
-          )}
-        </div>
-      </form>
+    <div className="mx-auto grid w-full max-w-md gap-8">
+      <h1 className="text-2xl font-semibold">Timer</h1>
+      <Card>
+        <form onSubmit={submit} className="contents">
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="exam-start">Exam start time</FieldLabel>
+                <Input id="exam-start" type="time" required value={start} onChange={(event) => setStart(event.target.value)} />
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="exam-reading">Reading minutes</FieldLabel>
+                  <Input id="exam-reading" type="number" min={0} required inputMode="numeric" className="tabular-nums" value={reading} onChange={(event) => setReading(event.target.value)} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="exam-writing">Writing minutes</FieldLabel>
+                  <Input id="exam-writing" type="number" min={0} required inputMode="numeric" className="tabular-nums" value={writing} onChange={(event) => setWriting(event.target.value)} />
+                </Field>
+              </div>
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="gap-2">
+            <Button type="submit">{running ? 'Restart' : 'Start'}</Button>
+            {running && (
+              <Button type="button" variant="ghost" onClick={() => setExamTimer(namespace, null)}>
+                Stop
+              </Button>
+            )}
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 }

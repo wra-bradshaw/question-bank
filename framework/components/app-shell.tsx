@@ -30,20 +30,24 @@ export function AppShell({
 
   return (
     <Toaster>
-      <div className={cn('flex flex-col bg-white', isQuestionBank ? 'h-dvh overflow-hidden' : 'min-h-dvh')}>
-        <header className="sticky top-0 z-20 shrink-0 border-b border-gray-200 bg-white">
-          <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-8 px-4">
-            <Link to="/" className="text-lg font-bold text-gray-900">
+      <div className={cn('flex flex-col bg-background', isQuestionBank ? 'h-dvh overflow-hidden' : 'min-h-dvh')}>
+        <header className="sticky top-0 z-20 shrink-0 border-b bg-background/80 backdrop-blur-sm">
+          <div className="flex h-14 items-center gap-6 px-6">
+            <Link to="/" className="text-sm font-semibold text-foreground">
               {brand}
             </Link>
-            <nav className="flex items-center gap-6" aria-label="Main navigation">
+            <nav className="flex items-center gap-1" aria-label="Main navigation">
               {navigation.map(({ label, to }) => {
                 const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
                 return (
                   <Link
                     key={to}
                     to={to}
-                    className={cn('text-sm font-semibold text-gray-600 hover:text-gray-900', active && 'text-gray-900 underline underline-offset-4')}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                      active && 'bg-muted text-foreground',
+                    )}
                   >
                     {label}
                   </Link>
@@ -55,7 +59,7 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <main className={cn('w-full flex-1', isQuestionBank ? 'flex min-h-0 flex-col overflow-hidden' : 'mx-auto max-w-6xl px-4 py-8')}>
+        <main className={cn('w-full flex-1', isQuestionBank ? 'flex min-h-0 flex-col overflow-hidden' : 'mx-auto max-w-5xl px-6 py-10')}>
           {children}
         </main>
       </div>

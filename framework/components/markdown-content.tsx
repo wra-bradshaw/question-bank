@@ -25,23 +25,23 @@ function MathFormula({ tex, display }: { tex: string; display: boolean }) {
 
 // Every renderer drops react-markdown's `node` prop so it isn't forwarded to the DOM.
 const components: Components = {
-  a: ({ node: _node, ...props }) => <a className="font-medium text-green-800 underline decoration-green-300 underline-offset-2 hover:text-green-950" target="_blank" rel="noreferrer" {...props} />,
-  blockquote: ({ node: _node, ...props }) => <blockquote className="my-4 border-l-2 border-gray-300 pl-4 text-gray-700" {...props} />,
+  a: ({ node: _node, ...props }) => <a className="font-medium text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground" target="_blank" rel="noreferrer" {...props} />,
+  blockquote: ({ node: _node, ...props }) => <blockquote className="my-4 border-l-2 pl-4 text-muted-foreground" {...props} />,
   code: ({ node: _node, className, children, ...props }) => {
     if (hasClass(className, 'language-math')) {
       return <MathFormula tex={textOf(children)} display={hasClass(className, 'math-display')} />
     }
     // Inline-code styling; fenced blocks reset it via the `pre` renderer below.
-    return <code className={cn('rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.9em] text-gray-900 break-words', className)} {...props}>{children}</code>
+    return <code className={cn('rounded bg-muted px-1 py-0.5 font-mono text-[0.875em] break-words', className)} {...props}>{children}</code>
   },
-  h1: ({ node: _node, ...props }) => <h1 className="mb-3 mt-6 text-2xl font-bold tracking-tight text-gray-950 first:mt-0" {...props} />,
-  h2: ({ node: _node, ...props }) => <h2 className="mb-3 mt-6 text-xl font-bold tracking-tight text-gray-950 first:mt-0" {...props} />,
-  h3: ({ node: _node, ...props }) => <h3 className="mb-2 mt-5 text-lg font-semibold text-gray-950 first:mt-0" {...props} />,
-  hr: () => <hr className="my-5 border-gray-200" />,
-  img: ({ node: _node, ...props }) => <img className="my-4 h-auto max-w-full rounded-md border border-gray-200" loading="lazy" {...props} />,
+  h1: ({ node: _node, ...props }) => <h1 className="mb-3 mt-6 text-xl font-semibold first:mt-0" {...props} />,
+  h2: ({ node: _node, ...props }) => <h2 className="mb-3 mt-6 text-lg font-semibold first:mt-0" {...props} />,
+  h3: ({ node: _node, ...props }) => <h3 className="mb-2 mt-5 text-base font-semibold first:mt-0" {...props} />,
+  hr: () => <hr className="my-5" />,
+  img: ({ node: _node, ...props }) => <img className="my-4 h-auto max-w-full rounded-lg border" loading="lazy" {...props} />,
   li: ({ node: _node, ...props }) => <li className="my-1 pl-1" {...props} />,
   ol: ({ node: _node, ...props }) => <ol className="my-3 list-decimal space-y-1 pl-6" {...props} />,
-  p: ({ node: _node, ...props }) => <p className="my-3 whitespace-pre-wrap leading-7 first:mt-0 last:mb-0" {...props} />,
+  p: ({ node: _node, ...props }) => <p className="my-3 whitespace-pre-wrap first:mt-0 last:mb-0" {...props} />,
   pre: ({ node, children, ...props }) => {
     // remark-math emits display math as <pre><code class="language-math math-display">.
     const first = node?.children.find((child) => child.type === 'element')
@@ -50,17 +50,17 @@ const components: Components = {
     }
     return (
       <pre
-        className="my-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-gray-50 [&_code]:rounded-none [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-sm [&_code]:text-inherit [&_code]:break-normal"
+        className="my-4 overflow-x-auto rounded-lg bg-muted p-4 font-mono text-xs leading-5 [&_code]:rounded-none [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-xs [&_code]:break-normal"
         {...props}
       >
         {children}
       </pre>
     )
   },
-  table: ({ node: _node, children, ...props }) => <div className="my-4 overflow-x-auto"><table className="w-full border-collapse text-left text-sm" {...props}>{children}</table></div>,
-  tbody: ({ node: _node, ...props }) => <tbody className="divide-y divide-gray-200" {...props} />,
-  td: ({ node: _node, ...props }) => <td className="border border-gray-200 px-3 py-2 align-top" {...props} />,
-  th: ({ node: _node, ...props }) => <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-left font-semibold" {...props} />,
+  table: ({ node: _node, children, ...props }) => <div className="my-4 overflow-x-auto rounded-lg border"><table className="w-full border-collapse text-left text-sm [&_tr>*:first-child]:border-l-0 [&_tr>*:last-child]:border-r-0 [&_tr:first-child>*]:border-t-0 [&_tbody_tr:last-child>*]:border-b-0" {...props}>{children}</table></div>,
+  tbody: ({ node: _node, ...props }) => <tbody className="divide-y" {...props} />,
+  td: ({ node: _node, ...props }) => <td className="border px-3 py-2 align-top" {...props} />,
+  th: ({ node: _node, ...props }) => <th className="border bg-muted/50 px-3 py-2 text-left font-medium" {...props} />,
   ul: ({ node: _node, ...props }) => <ul className="my-3 list-disc space-y-1 pl-6" {...props} />,
 }
 
@@ -153,5 +153,5 @@ export function MarkdownContent({ content, className, inline = false }: { conten
     </ReactMarkdown>
   )
   if (inline) return <span className={cn('min-w-0', className)}>{markdown}</span>
-  return <div className={cn(blockClassName, 'text-base leading-7 text-gray-800', className)}>{markdown}</div>
+  return <div className={cn(blockClassName, 'text-[15px] leading-7 text-foreground', className)}>{markdown}</div>
 }

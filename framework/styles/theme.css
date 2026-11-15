@@ -1,24 +1,35 @@
-/* shadcn-style theme tokens consumed by question-bank-framework UI components.
- * Import this from your app stylesheet (after tailwindcss) instead of
- * copy-pasting the tokens, so every bank inherits upstream token changes:
+/* Design system for question-bank-framework: shadcn/ui neutral tokens + Inter.
+ * Import this from your app stylesheet after tailwindcss:
  *
  *   @import 'tailwindcss';
- *   @source '../node_modules/question-bank-framework';
  *   @import 'question-bank-framework/framework/styles/theme.css';
  */
 
+/* Generate utilities used by the framework's components (paths resolve
+ * relative to this file, so this also works when the package is linked). */
+@source '..';
+
+/* Inter variable with both axes (wght 100–900, opsz 14–32), upright and italic.
+ * `font-optical-sizing: auto` (below) maps opsz to the font size, so small
+ * text gets Inter Text (open spacing) and headings get Inter Display (tight
+ * spacing, finer details). Don't add negative tracking on top of it. */
+@import '@fontsource-variable/inter/opsz.css';
+@import '@fontsource-variable/inter/opsz-italic.css';
+@import 'tw-animate-css';
 /* KaTeX CSS from the framework's own katex, matching the version that renders
  * math in MarkdownContent. Don't import katex CSS separately in your app. */
 @import 'katex/dist/katex.min.css';
 
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-mono: 'DM Mono', ui-monospace, monospace;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,6 +45,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -41,22 +54,47 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #ffffff;
-  --foreground: #111827;
-  --card: #ffffff;
-  --card-foreground: #111827;
-  --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #25564c;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f2;
-  --secondary-foreground: #263a2f;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --accent: #eef3ef;
-  --accent-foreground: #263a2f;
-  --destructive: #b91c1c;
-  --border: #d1d5db;
-  --input: #d1d5db;
-  --ring: #78a589;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.527 0.154 150.069);
+  --warning: oklch(0.666 0.179 58.318);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background font-sans text-foreground;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
 }

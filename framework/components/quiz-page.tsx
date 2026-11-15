@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { Check, Pencil, X } from 'lucide-react';
+import { Check, ChevronLeft, Pencil, X } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import type { QuestionStatus, QuestionStatusMap, QuizAnswer, QuizSession } from '../../core/types.ts';
 import {
@@ -30,15 +30,15 @@ import { getQuiz, saveQuizLocally, syncQuiz } from '../lib/quiz-storage.ts';
 import { cn } from '../lib/utils.ts';
 
 const questionStatusStyles: Record<QuestionStatus, string> = {
-  unanswered: 'border-gray-300 bg-gray-50 text-gray-700',
-  revisit: 'border-amber-300 bg-amber-50 text-amber-900',
-  complete: 'border-green-300 bg-green-50 text-green-800',
+  unanswered: 'border-border bg-muted text-muted-foreground',
+  revisit: 'border-warning/30 bg-warning/10 text-warning',
+  complete: 'border-success/30 bg-success/10 text-success',
 };
 
 const questionStatusDotStyles: Record<QuestionStatus, string> = {
-  unanswered: 'border-gray-300 bg-white text-gray-600 hover:border-gray-500',
-  revisit: 'border-amber-400 bg-amber-100 text-amber-900 hover:border-amber-600',
-  complete: 'border-green-500 bg-green-100 text-green-900 hover:border-green-700',
+  unanswered: 'border-border bg-background text-muted-foreground hover:bg-muted',
+  revisit: 'border-warning/30 bg-warning/10 text-warning hover:bg-warning/20',
+  complete: 'border-success/30 bg-success/10 text-success hover:bg-success/20',
 };
 
 export function QuizPage() {
@@ -177,15 +177,15 @@ export function QuizPage() {
     setEditingTitle(false);
   };
 
-  if (loading) return <div className="py-16 text-center text-sm text-gray-600">Opening your quiz...</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-muted-foreground">Opening your quiz...</div>;
 
   if (!session || !activeQuestion || quizQuestions.length === 0) {
     return (
-      <div className="mx-auto max-w-xl py-16 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Quiz not found</h1>
-        <p className="mt-2 text-base text-gray-600">This practice set may have been removed from this browser.</p>
-        <Button asChild className="mt-6">
-          <Link to="/quizzes">Back to My quizzes</Link>
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center py-16 text-center">
+        <h1 className="text-2xl font-semibold">Quiz not found</h1>
+        <p className="mt-1 text-sm text-muted-foreground">This practice set may have been removed from this browser.</p>
+        <Button render={<Link to="/quizzes" />} nativeButton={false} className="mt-6">
+          Back to my quizzes
         </Button>
       </div>
     );
@@ -208,8 +208,9 @@ export function QuizPage() {
 
   return (
     <div className="mx-auto grid w-full max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
-      <Link to="/quizzes" className="text-sm font-semibold text-gray-600 hover:text-gray-900">
-        Back to My quizzes
+      <Link to="/quizzes" className="inline-flex w-fit items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+        <ChevronLeft aria-hidden="true" className="size-4" />
+        Back to my quizzes
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -229,7 +230,7 @@ export function QuizPage() {
               onKeyDown={(event) => {
                 if (event.key === 'Escape') setEditingTitle(false);
               }}
-              className="h-auto min-w-0 border-gray-300 px-2 py-1 text-2xl font-bold tracking-tight md:text-3xl"
+              className="h-9 min-w-0 px-2 text-2xl font-semibold md:text-2xl"
             />
             <Button type="submit" size="icon-sm" aria-label="Save title" title="Save title" disabled={!titleDraft.trim()}>
               <Check aria-hidden="true" />
@@ -240,26 +241,26 @@ export function QuizPage() {
           </form>
         ) : (
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="m-0 min-w-0 break-words text-3xl font-bold tracking-tight text-gray-900">{session.title}</h1>
+            <h1 className="m-0 min-w-0 break-words text-2xl font-semibold">{session.title}</h1>
             <Button type="button" variant="ghost" size="icon-xs" aria-label="Edit quiz title" title="Edit quiz title" onClick={startEditingTitle}>
-              <Pencil aria-hidden="true" />
+              <Pencil aria-hidden="true" className="text-muted-foreground" />
             </Button>
           </div>
         )}
-        <span className="text-sm text-gray-600">{saving ? 'Saving...' : 'Saved'}</span>
+        <span className="text-xs text-muted-foreground">{saving ? 'Saving...' : 'Saved'}</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <p className="m-0 text-base font-semibold text-gray-900">
+        <p className="m-0 text-sm font-medium tabular-nums">
           Question {activeIndex + 1} of {quizQuestions.length}
         </p>
         {score.gradeable > 0 && (
-          <Badge variant="secondary" aria-label={`Quiz score: ${score.correct} of ${score.gradeable} correct`}>
+          <Badge variant="secondary" className="tabular-nums" aria-label={`Quiz score: ${score.correct} of ${score.gradeable} correct`}>
             {score.correct}/{score.gradeable} correct
           </Badge>
         )}
         {session.completed && (
-          <Badge variant="outline" className="border-green-300 bg-green-50 text-green-800">
+          <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
             Quiz complete
           </Badge>
         )}
@@ -280,9 +281,9 @@ export function QuizPage() {
                     aria-current={isActive ? 'true' : undefined}
                     title={`${question.title} — ${questionStatusLabels[status]}`}
                     className={cn(
-                      'flex size-8 items-center justify-center rounded-md border text-xs font-semibold tabular-nums transition-colors',
+                      'flex size-8 items-center justify-center rounded-lg border text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                       questionStatusDotStyles[status],
-                      isActive && 'ring-2 ring-gray-900 ring-offset-2',
+                      isActive && 'ring-2 ring-ring ring-offset-2 ring-offset-background',
                     )}
                   >
                     {index + 1}
@@ -295,8 +296,8 @@ export function QuizPage() {
       )}
 
       {session.completed && score.gradeable > 0 && (
-        <section aria-label="Quiz results" className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-          <h2 className="m-0 text-lg font-semibold text-gray-900">
+        <section aria-label="Quiz results" className="rounded-xl border bg-card p-5">
+          <h2 className="m-0 text-base font-semibold tabular-nums">
             You scored {score.correct} of {score.gradeable}
           </h2>
           <ol className="mt-3 grid gap-1.5">
@@ -318,22 +319,22 @@ export function QuizPage() {
                   <button
                     type="button"
                     onClick={() => goToQuestion(index)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-gray-100"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted/50"
                     aria-label={`Review question ${index + 1}: ${question.title} — ${resultLabel.toLowerCase()}`}
                   >
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                        result === true && 'bg-green-600 text-white',
-                        result === false && 'bg-red-600 text-white',
-                        result === null && 'bg-gray-200 text-gray-700',
+                        'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-medium tabular-nums',
+                        result === true && 'bg-success/10 text-success',
+                        result === false && 'bg-destructive/10 text-destructive',
+                        result === null && 'bg-muted text-muted-foreground',
                       )}
                     >
                       {result === true ? <Check className="size-3" /> : result === false ? <X className="size-3" /> : index + 1}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-gray-900">{question.title}</span>
-                    <span className="shrink-0 text-xs text-gray-500">{resultLabel}</span>
+                    <span className="min-w-0 flex-1 truncate">{question.title}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{resultLabel}</span>
                   </button>
                 </li>
               );
@@ -342,15 +343,15 @@ export function QuizPage() {
         </section>
       )}
 
-      <section className="min-w-0 rounded-xl border border-gray-200 bg-white p-5">
+      <section className="min-w-0 rounded-xl border bg-card p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="m-0 min-w-0 flex-1 break-words text-xl font-semibold text-gray-900">{activeQuestion.title}</h2>
+          <h2 className="m-0 min-w-0 flex-1 break-words text-base font-semibold">{activeQuestion.title}</h2>
           <Badge variant="outline">{questionKindLabels[kind]}</Badge>
           <Badge variant="outline" className={questionStatusStyles[activeStatus]}>
             {questionStatusLabels[activeStatus]}
           </Badge>
         </div>
-        <p className="mt-1 break-all font-mono text-xs text-gray-500">{activeQuestion.id}</p>
+        <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{activeQuestion.id}</p>
         {activeQuestion.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {activeQuestion.tags.map((tag) => (
@@ -360,11 +361,11 @@ export function QuizPage() {
             ))}
           </div>
         )}
-        <MarkdownContent content={activeQuestion.prompt} className="mt-4 text-base leading-relaxed text-gray-800" />
+        <MarkdownContent content={activeQuestion.prompt} className="mt-4 text-[15px] leading-7" />
 
         {choice ? (
           <div className="mt-6">
-            <p id="quiz-choices-label" className="text-sm font-semibold text-gray-900">
+            <p id="quiz-choices-label" className="text-sm font-medium">
               {kind === 'single' ? 'Choose one answer' : 'Choose all that apply'}
             </p>
             <div role={kind === 'single' ? 'radiogroup' : 'group'} aria-labelledby="quiz-choices-label" className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
@@ -376,12 +377,12 @@ export function QuizPage() {
                   <label
                     key={option.id}
                     className={cn(
-                      'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors',
-                      !showCorrectness && selected && 'border-gray-900 bg-gray-50',
-                      !showCorrectness && !selected && 'border-gray-300 bg-white hover:border-gray-500',
-                      showCorrectness && isCorrectOption && 'border-green-600 bg-green-50',
-                      showCorrectness && !isCorrectOption && selected && 'border-red-600 bg-red-50',
-                      showCorrectness && !isCorrectOption && !selected && 'border-gray-200 bg-white opacity-70',
+                      'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors has-focus-visible:ring-3 has-focus-visible:ring-ring/50',
+                      !showCorrectness && selected && 'border-ring bg-muted',
+                      !showCorrectness && !selected && 'hover:bg-muted/50',
+                      showCorrectness && isCorrectOption && 'border-success/30 bg-success/10',
+                      showCorrectness && !isCorrectOption && selected && 'border-destructive/30 bg-destructive/10',
+                      showCorrectness && !isCorrectOption && !selected && 'opacity-60',
                     )}
                   >
                     <input
@@ -389,32 +390,32 @@ export function QuizPage() {
                       name={`quiz-choice-${activeQuestion.id}`}
                       checked={selected}
                       onChange={() => toggleOption(activeQuestion.id, option.id, kind === 'single')}
-                      className="mt-1 size-4 shrink-0 accent-gray-900"
+                      className="mt-1.5 size-4 shrink-0 accent-primary"
                       aria-label={`Option ${optionLetter(index)}`}
                     />
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
+                        'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-medium',
                         showCorrectness && isCorrectOption
-                          ? 'border-green-600 bg-green-600 text-white'
+                          ? 'border-success/30 bg-success/10 text-success'
                           : showCorrectness && selected
-                            ? 'border-red-600 bg-red-600 text-white'
+                            ? 'border-destructive/30 bg-destructive/10 text-destructive'
                             : selected
-                              ? 'border-gray-900 bg-gray-900 text-white'
-                              : 'border-gray-300 bg-white text-gray-600',
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'bg-background text-muted-foreground',
                       )}
                     >
                       {optionLetter(index)}
                     </span>
-                    <MarkdownContent content={option.text} className="min-w-0 flex-1 overflow-x-auto text-base leading-7" />
+                    <MarkdownContent content={option.text} className="min-w-0 flex-1 overflow-x-auto text-[15px] leading-7" />
                     {showCorrectness && isCorrectOption && (
-                      <Badge variant="outline" className="shrink-0 border-green-600 bg-white text-green-800">
+                      <Badge variant="outline" className="mt-1 shrink-0 border-success/30 bg-success/10 text-success">
                         Correct
                       </Badge>
                     )}
                     {showCorrectness && !isCorrectOption && selected && (
-                      <Badge variant="outline" className="shrink-0 border-red-600 bg-white text-red-800">
+                      <Badge variant="outline" className="mt-1 shrink-0 border-destructive/30 bg-destructive/10 text-destructive">
                         Yours
                       </Badge>
                     )}
@@ -441,7 +442,7 @@ export function QuizPage() {
           />
         ) : (
           <div className="mt-6">
-            <label htmlFor="quiz-answer" className="text-sm font-semibold text-gray-900">
+            <label htmlFor="quiz-answer" className="text-sm font-medium">
               Your answer
             </label>
             <textarea
@@ -449,7 +450,7 @@ export function QuizPage() {
               value={typeof answer === 'string' ? answer : ''}
               onChange={(event) => updateWrittenAnswer(event.target.value)}
               placeholder="Write your working or notes here..."
-              className="mt-2 block min-h-40 w-full resize-y rounded-lg border border-gray-300 bg-white p-3 text-base leading-relaxed text-gray-900 outline-none placeholder:text-gray-400"
+              className="mt-2 block min-h-40 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm leading-6 transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
             />
           </div>
         )}
@@ -460,8 +461,8 @@ export function QuizPage() {
               <div
                 role="status"
                 className={cn(
-                  'mt-4 rounded-lg border p-4 text-sm font-medium',
-                  correctness ? 'border-green-300 bg-green-50 text-green-900' : 'border-red-300 bg-red-50 text-red-900',
+                  'mt-4 rounded-lg border px-4 py-3 text-sm font-medium',
+                  correctness ? 'border-success/30 bg-success/10 text-success' : 'border-destructive/30 bg-destructive/10 text-destructive',
                 )}
               >
                 {correctness
@@ -510,17 +511,17 @@ export function QuizPage() {
               </Button>
             )}
             {isSuggestedAnswerShown && (
-              <section id="suggested-answer" className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <h3 className="m-0 text-base font-semibold text-gray-900">
+              <section id="suggested-answer" className="mt-4 rounded-lg border bg-muted/50 p-4">
+                <h3 className="m-0 text-sm font-medium">
                   {gradeable ? 'Explanation' : 'Suggested answer'}
                 </h3>
-                <MarkdownContent content={suggestedAnswer} className="mt-3 text-sm leading-relaxed text-gray-800" />
+                <MarkdownContent content={suggestedAnswer} className="mt-2 text-sm leading-6" />
               </section>
             )}
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => goToQuestion(Math.max(activeIndex - 1, 0))} disabled={activeIndex === 0}>
               Previous
@@ -537,7 +538,7 @@ export function QuizPage() {
             <Button variant="outline" onClick={() => updateQuestionStatus('unanswered')} disabled={session.completed}>
               Skip
             </Button>
-            <Button onClick={() => updateQuestionStatus('revisit')} disabled={session.completed} className="bg-amber-400 text-gray-950 hover:bg-amber-500">
+            <Button onClick={() => updateQuestionStatus('revisit')} disabled={session.completed} variant="outline" className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 hover:text-warning">
               Revisit
             </Button>
             <Button onClick={() => updateQuestionStatus('complete')} disabled={session.completed}>

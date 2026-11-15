@@ -26,19 +26,23 @@ Your app owns:
 - Thin TanStack Start routes in `src/routes/` (see `template/src/routes/`)
   wrapping `<BankProvider bank={bank}>` + `<AppShell brand>` + framework pages.
 - `src/routes/styles.css` (scaffolded by `qb init`, imported as `?url` from
-  `__root.tsx`). It must list the framework as a Tailwind source — v4 ignores
-  `node_modules` by default, so without this none of the grid/badge/filter
-  utilities are generated and the app renders unstyled:
+  `__root.tsx`):
 
 ```css
 @import 'tailwindcss';
 @import 'question-bank-framework/framework/styles/theme.css';
-@source '../node_modules/question-bank-framework'; /* relative to this file */
 ```
 
-`theme.css` also pulls in the KaTeX stylesheet from the framework's own `katex`,
-matching the version that renders math. Don't import `katex/dist/katex.min.css`
-yourself — a mismatched KaTeX version breaks math layout (0.19 renamed its CSS classes).
+`theme.css` is the design system: shadcn/ui neutral tokens, Inter Variable
+(weight and optical-size axes, with `font-optical-sizing: auto`), tw-animate-css,
+and the KaTeX stylesheet from the framework's own `katex`. It also registers the
+framework's components as a Tailwind source, so you don't need an `@source` line.
+Don't import `katex/dist/katex.min.css` yourself — a mismatched KaTeX version
+breaks math layout (0.19 renamed its CSS classes).
+
+UI components in `framework/components/ui/` are shadcn/ui on Base UI
+(base-nova style). Style everything with Tailwind utilities and the theme tokens
+(`bg-background`, `text-muted-foreground`, `border`, …), not raw colours.
 
 Text columns sort number-aware ("Q2" before "Q10"). New quizzes keep the
 table's current sort order, so to get source order add a numeric field (e.g.

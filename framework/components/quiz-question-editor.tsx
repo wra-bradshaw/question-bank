@@ -68,10 +68,10 @@ export function QuizQuestionEditor({
     <Sheet open={quiz !== null} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 sm:max-w-md">
         <SheetHeader className="border-b">
-          <SheetTitle>Edit questions</SheetTitle>
-          <SheetDescription>{quiz?.title}. Drag to reorder, or remove questions you no longer want.</SheetDescription>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">
+          <SheetTitle className="font-semibold">Edit questions</SheetTitle>
+          <SheetDescription className="truncate">{quiz?.title}</SheetDescription>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-xs tabular-nums text-muted-foreground">
               {ids.length} {ids.length === 1 ? 'question' : 'questions'}
             </span>
             <Button
@@ -83,7 +83,7 @@ export function QuizQuestionEditor({
               aria-label="Shuffle question order"
               title="Shuffle question order"
             >
-              <Shuffle aria-hidden="true" />
+              <Shuffle aria-hidden="true" data-icon="inline-start" />
               Shuffle
             </Button>
           </div>
@@ -105,12 +105,12 @@ export function QuizQuestionEditor({
               }}
               onDragEnd={() => setDragIndex(null)}
               className={cn(
-                'flex items-center gap-2 rounded-md border border-transparent px-2 py-2 hover:bg-muted',
-                dragIndex === index && 'border-gray-300 bg-muted opacity-60',
+                'flex h-10 items-center gap-2 rounded-md border border-transparent px-2 hover:bg-muted/50',
+                dragIndex === index && 'border-border bg-muted opacity-60',
               )}
             >
               <GripVertical aria-hidden="true" className="size-4 shrink-0 cursor-grab text-muted-foreground" />
-              <span className="w-6 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{index + 1}</span>
+              <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{index + 1}</span>
               <span className="min-w-0 flex-1 truncate text-sm">{bank.questionById.get(id)?.title ?? id}</span>
               <Button
                 type="button"
@@ -137,7 +137,7 @@ export function QuizQuestionEditor({
                 variant="ghost"
                 size="icon-xs"
                 aria-label="Remove question"
-                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setIds((current) => current.filter((item) => item !== id))}
               >
                 <Trash2 aria-hidden="true" />
@@ -146,13 +146,13 @@ export function QuizQuestionEditor({
           ))}
           {ids.length === 0 && (
             <li className="px-2 py-8 text-center text-sm text-muted-foreground">
-              No questions left. Delete the quiz instead if you no longer need it.
+              No questions left
             </li>
           )}
         </ol>
         <SheetFooter className="border-t">
           {saveError && (
-            <p role="alert" className="m-0 text-sm text-red-700">
+            <p role="alert" className="m-0 text-sm text-destructive">
               Could not save changes. Please try again.
             </p>
           )}

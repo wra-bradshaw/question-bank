@@ -6,6 +6,7 @@ import { Check, X } from 'lucide-react';
 import type { BaseQuestion, QuestionOption, QuizAnswer } from '../../core/types.ts';
 import { getPairingSlots, parseNumericAnswer, questionKind, toPairings } from '../../core/types.ts';
 import { MarkdownContent } from './markdown-content';
+import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { cn } from '../lib/utils.ts';
 
@@ -38,11 +39,11 @@ export function NumericalResponse({
   const inputId = `quiz-numeric-${question.id}`;
   return (
     <div className="mt-6">
-      <label htmlFor={inputId} className="text-sm font-semibold text-gray-900">
+      <label htmlFor={inputId} className="text-sm font-medium">
         Your answer
       </label>
       <div className="mt-2 flex items-center gap-2">
-        <input
+        <Input
           id={inputId}
           type="text"
           inputMode="decimal"
@@ -53,16 +54,15 @@ export function NumericalResponse({
           aria-invalid={invalid || (checked && correct === false) || undefined}
           aria-describedby={invalid ? `${inputId}-hint` : undefined}
           className={cn(
-            'h-10 w-48 rounded-lg border bg-white px-3 font-mono text-base tabular-nums text-gray-900 outline-none placeholder:font-sans placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-gray-900/20',
-            checked && correct === true && 'border-green-600 bg-green-50',
-            checked && correct === false && 'border-red-600 bg-red-50',
-            !checked && 'border-gray-300',
+            'w-48 font-mono tabular-nums placeholder:font-sans',
+            checked && correct === true && 'border-success/30 bg-success/10',
+            checked && correct === false && 'border-destructive/30 bg-destructive/10',
           )}
         />
-        {question.numeric?.unit && <span className="text-sm text-gray-600">{question.numeric.unit}</span>}
+        {question.numeric?.unit && <span className="text-sm text-muted-foreground">{question.numeric.unit}</span>}
       </div>
       {invalid && (
-        <p id={`${inputId}-hint`} className="mt-1.5 text-sm text-amber-800">
+        <p id={`${inputId}-hint`} className="mt-1.5 text-xs text-warning">
           That doesn't look like a number — it will be marked incorrect.
         </p>
       )}
@@ -87,24 +87,35 @@ function OptionSelect({
   ariaLabel: string;
   state: 'idle' | 'correct' | 'incorrect' | 'missing';
 }) {
+  const renderOptionLabel = (option: QuestionOption, index: number) => (
+    <>
+      {lettered && <span className="font-medium text-muted-foreground">{optionLetter(index)}.</span>}
+      <MarkdownContent inline content={option.text} />
+    </>
+  );
   return (
-    <Select value={value ?? ''} onValueChange={onChange}>
+    <Select
+      value={value ?? null}
+      onValueChange={(next) => {
+        if (next !== null) onChange(next);
+      }}
+      items={options.map((option, index) => ({ value: option.id, label: renderOptionLabel(option, index) }))}
+    >
       <SelectTrigger
         id={id}
         aria-label={ariaLabel}
         className={cn(
-          'h-auto min-h-9 w-full min-w-48 whitespace-normal bg-white text-left sm:w-72',
-          state === 'correct' && 'border-green-600 bg-green-50',
-          (state === 'incorrect' || state === 'missing') && 'border-red-600 bg-red-50',
+          'h-auto min-h-8 w-full min-w-48 whitespace-normal text-left sm:w-72 *:data-[slot=select-value]:line-clamp-none',
+          state === 'correct' && 'border-success/30 bg-success/10',
+          (state === 'incorrect' || state === 'missing') && 'border-destructive/30 bg-destructive/10',
         )}
       >
         <SelectValue placeholder="Choose…" />
       </SelectTrigger>
-      <SelectContent position="popper" className="max-w-[min(36rem,calc(100vw-2rem))]">
+      <SelectContent alignItemWithTrigger={false} className="w-auto min-w-(--anchor-width) max-w-[min(36rem,calc(100vw-2rem))]">
         {options.map((option, index) => (
-          <SelectItem key={option.id} value={option.id} className="whitespace-normal">
-            {lettered && <span className="font-semibold text-gray-500">{optionLetter(index)}.</span>}
-            <MarkdownContent inline content={option.text} />
+          <SelectItem key={option.id} value={option.id} className="*:min-w-0 *:whitespace-normal">
+            {renderOptionLabel(option, index)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -132,20 +143,20 @@ export function PairingResponse({
 
   return (
     <div className="mt-6">
-      <p id={`quiz-pairing-label-${question.id}`} className="text-sm font-semibold text-gray-900">
+      <p id={`quiz-pairing-label-${question.id}`} className="text-sm font-medium">
         {matching ? 'Match each item to an option' : 'Fill in each blank'}
-        <span className="ml-2 font-normal text-gray-500">
+        <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
           {answeredCount}/{slots.length} answered
         </span>
       </p>
 
       {matching && (
-        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-          <p className="m-0 text-xs font-semibold uppercase tracking-wide text-gray-500">Options</p>
+        <div className="mt-3 rounded-lg border bg-muted/50 p-3">
+          <p className="m-0 text-xs font-medium text-muted-foreground">Options</p>
           <ol className="m-0 mt-2 grid list-none grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-1 p-0 sm:grid-cols-[repeat(2,minmax(0,1fr))]">
             {(question.options ?? []).map((option, index) => (
-              <li key={option.id} className="flex items-start gap-2 text-sm text-gray-800">
-                <span className="w-5 shrink-0 font-semibold text-gray-500">{optionLetter(index)}.</span>
+              <li key={option.id} className="flex items-start gap-2 text-sm leading-6">
+                <span className="w-5 shrink-0 font-medium text-muted-foreground">{optionLetter(index)}.</span>
                 <MarkdownContent inline content={option.text} className="min-w-0 flex-1 overflow-x-auto" />
               </li>
             ))}
@@ -169,14 +180,13 @@ export function PairingResponse({
                 // Wraps instead of squeezing: short items sit beside their select, while
                 // wide items (long formulas) take the full row and the select drops below.
                 'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3',
-                state === 'idle' && 'border-gray-200 bg-white',
-                state === 'correct' && 'border-green-300 bg-green-50/50',
-                (state === 'incorrect' || state === 'missing') && 'border-red-300 bg-red-50/50',
+                state === 'correct' && 'border-success/30 bg-success/10',
+                (state === 'incorrect' || state === 'missing') && 'border-destructive/30 bg-destructive/10',
               )}
             >
               <div className="flex min-w-0 max-w-full flex-[1_1_auto] items-start gap-2">
-                <span className="mt-0.5 w-6 shrink-0 text-sm font-semibold tabular-nums text-gray-500">{index + 1}.</span>
-                <label htmlFor={selectId} className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden text-base leading-7 text-gray-900">
+                <span className="mt-0.5 w-6 shrink-0 text-sm font-medium tabular-nums text-muted-foreground">{index + 1}.</span>
+                <label htmlFor={selectId} className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden text-[15px] leading-7">
                   <MarkdownContent inline content={label} />
                 </label>
               </div>
@@ -191,15 +201,15 @@ export function PairingResponse({
                     state={state}
                     onChange={(value) => onChange({ ...pairings, [slot.id]: value })}
                   />
-                  {state === 'correct' && <Check aria-label="Correct" className="size-5 shrink-0 text-green-700" />}
+                  {state === 'correct' && <Check aria-label="Correct" className="size-4 shrink-0 text-success" />}
                   {(state === 'incorrect' || state === 'missing') && (
-                    <X aria-label={state === 'missing' ? 'Not answered' : 'Incorrect'} className="size-5 shrink-0 text-red-700" />
+                    <X aria-label={state === 'missing' ? 'Not answered' : 'Incorrect'} className="size-4 shrink-0 text-destructive" />
                   )}
                 </div>
                 {(state === 'incorrect' || state === 'missing') && correctOption && (
-                  <p className="m-0 flex items-baseline gap-1 text-sm text-red-900">
+                  <p className="m-0 flex items-baseline gap-1 text-xs text-destructive">
                     <span className="shrink-0">Correct:</span>
-                    {matching && <span className="font-semibold">{optionLetter(correctIndex)}.</span>}
+                    {matching && <span className="font-medium">{optionLetter(correctIndex)}.</span>}
                     <MarkdownContent inline content={correctOption.text} />
                   </p>
                 )}

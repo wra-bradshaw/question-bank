@@ -16,9 +16,9 @@ import {
   type SortingFn,
   type SortingState,
 } from '@tanstack/react-table';
-import { Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronsUpDown, Search } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
-import type { BaseQuestion, QuestionKind, QuestionStatus, QuestionStatusMap, QuizSession } from '../../core/types.ts';
+import type { BaseQuestion, QuestionStatus, QuestionStatusMap, QuizSession } from '../../core/types.ts';
 import { getPairingSlots, isChoiceQuestion, questionKind, questionKindLabels } from '../../core/types.ts';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -26,7 +26,7 @@ import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { FilterBuilder } from './filter-builder';
 import { MarkdownContent } from './markdown-content';
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   createFilterFields,
@@ -60,19 +60,10 @@ const naturalSort: SortingFn<BaseQuestion> = (rowA, rowB, columnId) =>
 
 const previewCloseDelay = 180;
 const previewOpenDelay = 400;
-const questionStatusStyles: Record<QuestionStatus, string> = {
-  unanswered: 'border-gray-300 bg-gray-50 text-gray-700',
-  revisit: 'border-amber-300 bg-amber-50 text-amber-900',
-  complete: 'border-green-300 bg-green-50 text-green-800',
-};
-
-const questionKindStyles: Record<QuestionKind, string> = {
-  written: 'border-gray-300 bg-gray-50 text-gray-700',
-  single: 'border-sky-300 bg-sky-50 text-sky-900',
-  multiple: 'border-violet-300 bg-violet-50 text-violet-900',
-  numerical: 'border-emerald-300 bg-emerald-50 text-emerald-900',
-  matching: 'border-orange-300 bg-orange-50 text-orange-900',
-  dropdown: 'border-rose-300 bg-rose-50 text-rose-900',
+const questionStatusDot: Record<QuestionStatus, string> = {
+  unanswered: 'bg-muted-foreground/40',
+  revisit: 'bg-warning',
+  complete: 'bg-success',
 };
 
 const optionLetter = (index: number): string => String.fromCharCode(65 + index);
@@ -95,132 +86,50 @@ function kindDetail(question: BaseQuestion): string | undefined {
 }
 
 function QuestionPreviewPopover({ question }: { question: BaseQuestion }) {
-  const [open, setOpen] = useState(false);
-  const openTimeout = useRef<number | null>(null);
-  const closeTimeout = useRef<number | null>(null);
-  const openedByPointer = useRef(false);
-
-  const clearOpenTimeout = () => {
-    if (openTimeout.current !== null) {
-      window.clearTimeout(openTimeout.current);
-      openTimeout.current = null;
-    }
-  };
-  const clearCloseTimeout = () => {
-    if (closeTimeout.current !== null) {
-      window.clearTimeout(closeTimeout.current);
-      closeTimeout.current = null;
-    }
-  };
-  const openPreview = () => {
-    clearOpenTimeout();
-    clearCloseTimeout();
-    setOpen(true);
-  };
-  const scheduleOpen = () => {
-    clearOpenTimeout();
-    clearCloseTimeout();
-    openTimeout.current = window.setTimeout(() => {
-      setOpen(true);
-      openTimeout.current = null;
-    }, previewOpenDelay);
-  };
-  const scheduleClose = () => {
-    clearOpenTimeout();
-    clearCloseTimeout();
-    closeTimeout.current = window.setTimeout(() => {
-      setOpen(false);
-      openedByPointer.current = false;
-      closeTimeout.current = null;
-    }, previewCloseDelay);
-  };
-
-  useEffect(
-    () => () => {
-      if (openTimeout.current !== null) window.clearTimeout(openTimeout.current);
-      if (closeTimeout.current !== null) window.clearTimeout(closeTimeout.current);
-    },
-    [],
-  );
-
+  const pairingSlots = getPairingSlots(question);
   return (
-    <Popover
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (nextOpen) {
-          openPreview();
-        } else {
-          clearOpenTimeout();
-          clearCloseTimeout();
-          setOpen(false);
-          openedByPointer.current = false;
-        }
-      }}
-    >
-      <PopoverAnchor asChild>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-label={`Preview question: ${question.title}`}
-          className="block max-w-full rounded-sm text-left text-base font-semibold leading-6 text-foreground hover:underline hover:decoration-dotted hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          onPointerEnter={() => {
-            openedByPointer.current = true;
-            scheduleOpen();
-          }}
-          onPointerLeave={scheduleClose}
-          onFocus={() => {
-            if (!openedByPointer.current) scheduleOpen();
-          }}
-          onBlur={scheduleClose}
-          onClick={(event) => {
-            event.stopPropagation();
-            scheduleOpen();
-          }}
-        >
-          {question.title}
-        </button>
-      </PopoverAnchor>
+    <Popover>
+      <PopoverTrigger
+        openOnHover
+        delay={previewOpenDelay}
+        closeDelay={previewCloseDelay}
+        aria-label={`Preview question: ${question.title}`}
+        onClick={(event) => event.stopPropagation()}
+        className="block max-w-full rounded-sm text-left text-sm font-medium text-foreground decoration-muted-foreground/50 underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        {question.title}
+      </PopoverTrigger>
       <PopoverContent
         side="right"
         align="start"
         sideOffset={8}
         collisionPadding={12}
         aria-label={`Preview: ${question.title}`}
-        className="max-h-[min(70dvh,calc(100dvh-1.5rem))] w-[min(680px,calc(100vw-2rem))] max-w-[calc(100vw-1.5rem)] overflow-y-auto p-0"
-        onOpenAutoFocus={(event) => {
-          if (openedByPointer.current) event.preventDefault();
-        }}
-        onPointerEnter={openPreview}
-        onPointerLeave={scheduleClose}
-        onFocusCapture={openPreview}
-        onBlurCapture={scheduleClose}
+        className="max-h-[min(70dvh,calc(100dvh-1.5rem))] w-[min(640px,calc(100vw-2rem))] gap-0 overflow-y-auto p-4"
       >
-        <div className="px-4 py-3">
-          <MarkdownContent content={question.prompt} />
-          {isChoiceQuestion(question) && (
-            <ol className="mt-3 space-y-1.5">
-              {(question.options ?? []).map((option, index) => (
-                <li key={option.id} className="flex items-start gap-2 text-sm text-gray-800">
-                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-gray-50 text-[11px] font-bold text-gray-600">
-                    {optionLetter(index)}
-                  </span>
-                  <MarkdownContent content={option.text} className="min-w-0 flex-1 text-sm leading-6" />
-                </li>
-              ))}
-            </ol>
-          )}
-          {getPairingSlots(question).length > 0 && (
-            <ol className="mt-3 list-decimal space-y-1 pl-6 text-sm text-gray-800">
-              {getPairingSlots(question).map((slot, index) => (
-                <li key={slot.id}>
-                  <MarkdownContent inline content={slot.label?.trim() ? slot.label : `Blank ${index + 1}`} />
-                  <span className="text-gray-500"> → ___</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <MarkdownContent content={question.prompt} />
+        {isChoiceQuestion(question) && (
+          <ol className="mt-3 grid gap-1.5">
+            {(question.options ?? []).map((option, index) => (
+              <li key={option.id} className="flex items-start gap-2.5 text-sm">
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium text-muted-foreground tabular-nums">
+                  {optionLetter(index)}
+                </span>
+                <MarkdownContent content={option.text} className="min-w-0 flex-1 text-sm leading-6" />
+              </li>
+            ))}
+          </ol>
+        )}
+        {pairingSlots.length > 0 && (
+          <ol className="mt-3 list-decimal space-y-1 pl-6 text-sm marker:text-muted-foreground">
+            {pairingSlots.map((slot, index) => (
+              <li key={slot.id}>
+                <MarkdownContent inline content={slot.label?.trim() ? slot.label : `Blank ${index + 1}`} />
+                <span className="text-muted-foreground"> → ___</span>
+              </li>
+            ))}
+          </ol>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -267,11 +176,11 @@ export function QuestionBank() {
   );
 
   // Size the ID column to the data: fits typical ids on one line, caps
-  // monsters (they wrap via break-all). Mono averages ~8.4px/char at
-  // text-sm, plus px-4 padding. e.g. econ ≈168, info hits the 320 cap.
+  // monsters (they wrap via break-all). Mono averages ~7.3px/char at
+  // text-xs, plus px-3 padding each side.
   const idWidth = useMemo(() => {
     const longest = bank.questions.reduce((n, q) => Math.max(n, q.id.length), 0);
-    return Math.min(320, Math.max(120, Math.ceil(longest * 8.4 + 32)));
+    return Math.min(280, Math.max(96, Math.ceil(longest * 7.3 + 24)));
   }, [bank.questions]);
 
   const handleAddFilter = (field: string) => {
@@ -323,14 +232,14 @@ export function QuestionBank() {
               return (
                 <div className="flex flex-wrap gap-1">
                   {(raw as readonly string[]).map((tag) => (
-                    <Badge key={String(tag)} variant="secondary">
+                    <Badge key={String(tag)} variant="secondary" className="h-auto rounded-md font-normal break-words whitespace-normal">
                       {String(tag)}
                     </Badge>
                   ))}
                 </div>
               );
             }
-            return <span className="whitespace-normal break-words text-sm text-foreground">{formatCellValue(raw)}</span>;
+            return <span className="text-sm break-words whitespace-normal text-muted-foreground">{formatCellValue(raw)}</span>;
           },
           enableSorting: sortable,
           ...(def.type === 'number' ? {} : { sortingFn: naturalSort }),
@@ -344,8 +253,9 @@ export function QuestionBank() {
         header: ({ table }) => (
           <Checkbox
             aria-label="Select all matching questions"
-            checked={table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? 'indeterminate' : false}
-            onCheckedChange={(checked) => table.toggleAllPageRowsSelected(checked === true)}
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={!table.getIsAllPageRowsSelected() && table.getIsSomePageRowsSelected()}
+            onCheckedChange={(checked) => table.toggleAllPageRowsSelected(checked)}
           />
         ),
         cell: ({ row }) => (
@@ -382,13 +292,13 @@ export function QuestionBank() {
           />
         ),
         enableSorting: false,
-        size: 44,
+        size: 48,
       },
       {
         accessorKey: 'id',
         header: 'ID',
         cell: ({ row }) => (
-          <span className="whitespace-normal break-all font-mono text-sm text-muted-foreground">{row.original.id}</span>
+          <span className="font-mono text-xs break-all whitespace-normal text-muted-foreground">{row.original.id}</span>
         ),
         sortingFn: naturalSort,
         size: idWidth,
@@ -420,7 +330,7 @@ export function QuestionBank() {
               cell: ({ row }) => (
                 <div className="flex min-w-0 flex-wrap gap-1">
                   {row.original.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="min-w-0 whitespace-normal break-words">
+                    <Badge key={tag} variant="secondary" className="h-auto min-w-0 rounded-md font-normal break-words whitespace-normal">
                       {tag}
                     </Badge>
                   ))}
@@ -435,7 +345,7 @@ export function QuestionBank() {
         cell: ({ row }) => {
           const kind = questionKind(row.original);
           return (
-            <Badge variant="outline" className={questionKindStyles[kind]} title={kindDetail(row.original)}>
+            <Badge variant="outline" className="font-normal text-muted-foreground" title={kindDetail(row.original)}>
               {questionKindLabels[kind]}
             </Badge>
           );
@@ -450,9 +360,10 @@ export function QuestionBank() {
         cell: ({ row }) => {
           const status = questionStatusMap[row.original.id] ?? 'unanswered';
           return (
-            <Badge variant="outline" className={questionStatusStyles[status]}>
+            <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <span aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', questionStatusDot[status])} />
               {questionStatusLabels[status]}
-            </Badge>
+            </span>
           );
         },
         size: 108,
@@ -668,59 +579,78 @@ export function QuestionBank() {
     }
   };
 
+  const resultCount = tableRows.length;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b bg-background px-4 py-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="relative min-w-[240px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search questions, topics, exams..."
-              aria-label="Search questions"
-              className="h-11 pl-10 text-base"
-            />
-          </label>
-          <FilterBuilder
-            fields={filterFields}
-            filters={filters}
-            match={filterMatch}
-            onAdd={handleAddFilter}
-            onChange={updateFilter}
-            onRemove={removeFilter}
-            onClear={clearFilters}
-            onMatchChange={setFilterMatch}
+      <div className="flex flex-wrap items-center gap-2 border-b px-6 py-3">
+        <label className="relative w-full max-w-sm min-w-60 flex-1 sm:flex-none">
+          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search"
+            aria-label="Search questions"
+            className="pl-8"
           />
-          {filters.length > 0 && (
-            <Button variant="ghost" className="h-11 text-base" onClick={clearFilters}>
-              Clear filters
-            </Button>
-          )}
-        </div>
+        </label>
+        <FilterBuilder
+          fields={filterFields}
+          filters={filters}
+          match={filterMatch}
+          onAdd={handleAddFilter}
+          onChange={updateFilter}
+          onRemove={removeFilter}
+          onClear={clearFilters}
+          onMatchChange={setFilterMatch}
+        />
+        {filters.length > 0 && (
+          <Button variant="ghost" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
+        <p className="ml-auto text-xs text-muted-foreground tabular-nums" aria-live="polite">
+          {resultCount} {resultCount === 1 ? 'question' : 'questions'}
+        </p>
       </div>
 
-      <Table containerRef={tableContainerRef} containerClassName="min-h-0 flex-1 overflow-auto" className="table-fixed" style={{ minWidth: minTableWidth }}>
+      <Table
+        containerRef={tableContainerRef}
+        containerClassName="min-h-0 flex-1 overflow-auto"
+        className="table-fixed"
+        style={{ minWidth: minTableWidth }}
+      >
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  // Title and tags are the absorbent columns (no width → take up
-                  // slack on wide screens). minTableWidth below floors them.
-                  style={header.column.id === 'tags' || header.column.id === 'title' ? undefined : { width: header.getSize() }}
-                  className="sticky top-0 z-10 h-12 border-b bg-muted px-4 text-sm font-semibold text-foreground"
-                >
-                  {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                    <button className="font-semibold hover:underline" onClick={header.column.getToggleSortingHandler()}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </button>
-                  ) : (
-                    flexRender(header.column.columnDef.header, header.getContext())
-                  )}
-                </TableHead>
-              ))}
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              {headerGroup.headers.map((header) => {
+                const sorted = header.column.getIsSorted();
+                const SortIcon = sorted === 'asc' ? ArrowUp : sorted === 'desc' ? ArrowDown : ChevronsUpDown;
+                return (
+                  <TableHead
+                    key={header.id}
+                    // Title and tags are the absorbent columns (no width → take up
+                    // slack on wide screens). minTableWidth floors them.
+                    style={header.column.id === 'tags' || header.column.id === 'title' ? undefined : { width: header.getSize() }}
+                    aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
+                    className="sticky top-0 z-10 h-9 bg-background px-3 text-xs font-medium text-muted-foreground shadow-[inset_0_-1px_0_var(--border)] first:pl-6 last:pr-6"
+                  >
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                      <button
+                        type="button"
+                        className="-mx-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <SortIcon aria-hidden="true" className={cn('size-3.5', !sorted && 'opacity-40')} />
+                      </button>
+                    ) : (
+                      flexRender(header.column.columnDef.header, header.getContext())
+                    )}
+                  </TableHead>
+                );
+              })}
             </TableRow>
           ))}
         </TableHeader>
@@ -728,8 +658,8 @@ export function QuestionBank() {
           {tableRows.length > 0 ? (
             <>
               {topPadding > 0 && (
-                <TableRow aria-hidden="true" className="border-0">
-                  <TableCell colSpan={columns.length} className="border-0 p-0" style={{ height: topPadding }} />
+                <TableRow aria-hidden="true" className="border-0 hover:bg-transparent">
+                  <TableCell colSpan={columns.length} className="p-0" style={{ height: topPadding }} />
                 </TableRow>
               )}
               {virtualRows.map((virtualRow) => {
@@ -743,7 +673,7 @@ export function QuestionBank() {
                     data-virtual-index={virtualRow.index}
                     data-question-row={row.id}
                     data-state={row.getIsSelected() ? 'selected' : undefined}
-                    className="group cursor-pointer"
+                    className="cursor-pointer select-none"
                     onPointerEnter={() => updateDragRange(virtualRow.index)}
                     onClick={() => {
                       if (suppressRowClick.current === row.id) {
@@ -757,8 +687,8 @@ export function QuestionBank() {
                       <TableCell
                         key={cell.id}
                         className={cn(
-                          'border-b px-4 py-2 align-middle',
-                          cell.column.id === 'title' && 'whitespace-normal break-words',
+                          'px-3 py-2.5 align-middle first:pl-6 last:pr-6',
+                          cell.column.id === 'title' && 'break-words whitespace-normal',
                         )}
                         onClick={cell.column.id === 'select' ? (event) => event.stopPropagation() : undefined}
                       >
@@ -769,16 +699,15 @@ export function QuestionBank() {
                 );
               })}
               {bottomPadding > 0 && (
-                <TableRow aria-hidden="true" className="border-0">
-                  <TableCell colSpan={columns.length} className="border-0 p-0" style={{ height: bottomPadding }} />
+                <TableRow aria-hidden="true" className="border-0 hover:bg-transparent">
+                  <TableCell colSpan={columns.length} className="p-0" style={{ height: bottomPadding }} />
                 </TableRow>
               )}
             </>
           ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-40 text-center">
-                <p className="text-lg font-semibold">No matching questions</p>
-                <p className="mt-1 text-base text-muted-foreground">Try another search or clear your filters.</p>
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={columns.length} className="h-48 text-center whitespace-normal">
+                <p className="text-sm text-muted-foreground">No matching questions</p>
                 <Button
                   variant="outline"
                   className="mt-4"
@@ -796,27 +725,21 @@ export function QuestionBank() {
       </Table>
 
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-5 right-1/2 z-30 flex w-[min(600px,calc(100vw-32px))] translate-x-1/2 items-center gap-3 rounded-xl border bg-background p-3 pl-4 shadow-lg">
-          <span className="text-base font-semibold">
-            {selectedIds.length} {selectedIds.length === 1 ? 'question' : 'questions'} selected
-          </span>
-          <Button variant="ghost" className="text-base" onClick={() => setRowSelection({})}>
+        <div className="fixed bottom-6 left-1/2 z-30 flex w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-2 rounded-xl border bg-popover p-2 pl-4 text-popover-foreground shadow-lg animate-in fade-in-0 slide-in-from-bottom-2">
+          <span className="text-sm font-medium tabular-nums">{selectedIds.length} selected</span>
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setRowSelection({})}>
             Clear
           </Button>
           <div className="ml-auto flex gap-2">
             <Popover open={addToQuizOpen} onOpenChange={openAddToQuiz}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="text-base">
-                  Add to quiz
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent side="top" align="end" className="w-80 p-1">
+              <PopoverTrigger render={<Button variant="outline" />}>Add to quiz</PopoverTrigger>
+              <PopoverContent side="top" align="end" sideOffset={8} className="w-80 gap-0 p-1">
                 {existingQuizzes === null ? (
-                  <p className="m-0 px-3 py-4 text-center text-sm text-muted-foreground">Loading quizzes...</p>
+                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">Loading…</p>
                 ) : existingQuizzes.length === 0 ? (
-                  <p className="m-0 px-3 py-4 text-center text-sm text-muted-foreground">No quizzes yet. Use "Make quiz" instead.</p>
+                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">No quizzes yet</p>
                 ) : (
-                  <ul className="m-0 max-h-72 list-none overflow-y-auto p-0">
+                  <ul className="max-h-72 overflow-y-auto">
                     {existingQuizzes.map((quiz) => {
                       const newCount = selectedIds.filter((id) => !quiz.questionIds.includes(id)).length;
                       return (
@@ -825,14 +748,14 @@ export function QuestionBank() {
                             type="button"
                             disabled={addingToQuizId !== null}
                             onClick={() => addToQuiz(quiz)}
-                            className="flex w-full flex-col items-start rounded-sm px-3 py-2 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:opacity-50"
+                            className="flex w-full flex-col items-start gap-0.5 rounded-md px-2.5 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50"
                           >
                             <span className="text-sm font-medium">{quiz.title}</span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground tabular-nums">
                               {addingToQuizId === quiz.id
-                                ? 'Adding...'
-                                : `${quiz.questionIds.length} ${quiz.questionIds.length === 1 ? 'question' : 'questions'} • ${
-                                    newCount === 0 ? 'all selected already included' : `+${newCount} new`
+                                ? 'Adding…'
+                                : `${quiz.questionIds.length} ${quiz.questionIds.length === 1 ? 'question' : 'questions'} · ${
+                                    newCount === 0 ? 'all already included' : `+${newCount} new`
                                   }`}
                             </span>
                           </button>
@@ -842,14 +765,14 @@ export function QuestionBank() {
                   </ul>
                 )}
                 {addToQuizError && (
-                  <p role="alert" className="m-0 px-3 py-2 text-sm text-red-700">
-                    Could not add to that quiz. Please try again.
+                  <p role="alert" className="px-2.5 py-2 text-sm text-destructive">
+                    Could not add to that quiz.
                   </p>
                 )}
               </PopoverContent>
             </Popover>
-            <Button className="text-base" onClick={makeQuiz} disabled={creatingQuiz}>
-              {creatingQuiz ? 'Making quiz...' : 'Make quiz'}
+            <Button onClick={makeQuiz} disabled={creatingQuiz}>
+              {creatingQuiz ? 'Making quiz…' : 'Make quiz'}
             </Button>
           </div>
         </div>

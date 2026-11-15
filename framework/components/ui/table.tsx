@@ -1,7 +1,7 @@
-"use client"
+// shadcn/ui table (Base UI, base-nova). Framework-owned: eject with `qb reveal framework/components/ui/table.tsx`.
 
 import * as React from "react"
-import { cn } from '../../lib/utils.ts'
+import { cn } from "../../lib/utils.ts"
 
 type TableProps = React.ComponentProps<"table"> & {
   containerRef?: React.Ref<HTMLDivElement>
@@ -75,7 +75,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -88,7 +88,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
