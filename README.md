@@ -51,12 +51,13 @@ column). Tags still feed free-text search.
 ## Mock-exam timer
 
 The header has a **Timer** link to `/timer` (add `src/routes/timer.tsx`
-rendering `<ExamTimerPage />`, as in the template). Set a start time and
-reading/writing minutes there; the timer is kept in localStorage, so it
-survives reloads and shows in every open tab. While it's running, the top
-right of the header shows the minutes left with a book (reading) or pen
-(writing) icon. It updates once a minute and disappears when the exam ends or
-the timer is cleared.
+rendering `<ExamTimerPage />`, as in the template). Enter the exam's start
+time (e.g. 08:30) and reading/writing minutes, then press Start: the top right
+of the header shows the mock exam time, starting at 08:30, with a book icon
+during reading time and a pen during writing time. It updates once a minute.
+Toasts announce reading time over, 30 and 10 minutes remaining, and exam over;
+the clock disappears once the exam is over. The timer lives in localStorage,
+so it survives reloads and shows in every open tab.
 
 ## Sync (Cloudflare Durable Objects)
 

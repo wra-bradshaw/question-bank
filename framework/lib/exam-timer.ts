@@ -1,30 +1,37 @@
-// Mock-exam timer: a start time plus reading and writing durations, kept in
+// Mock-exam clock: pressing Start on /timer pretends it's the exam's start time
+// (e.g. 08:30) right now, then the clock runs forward from there. Kept in
 // localStorage so it survives reloads and is shared by every open tab.
 // Framework-owned: eject with `qb reveal framework/lib/exam-timer.ts`.
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 export type ExamTimer = {
-  /** Start of reading time (epoch ms). */
-  start: number;
+  /** Exam start on the mock clock, in minutes after midnight (08:30 → 510). */
+  startMinutes: number;
+  /** When Start was pressed (epoch ms). */
+  startedAt: number;
   readingMinutes: number;
   writingMinutes: number;
 };
 
-export type ExamPhase =
-  | { phase: 'before'; minutesLeft: number }
-  | { phase: 'reading'; minutesLeft: number }
-  | { phase: 'writing'; minutesLeft: number }
-  | { phase: 'over' };
+export type ExamState = {
+  phase: 'reading' | 'writing' | 'over';
+  /** Mock clock time, "HH:MM". */
+  clock: string;
+  /** Ms since Start was pressed. */
+  elapsed: number;
+};
 
-const MINUTE = 60_000;
+export const MINUTE = 60_000;
 const CHANGE_EVENT = 'qb-exam-timer-change';
 const keyFor = (namespace: string) => `${namespace}-question-bank-exam-timer`;
 
 const isTimer = (value: unknown): value is ExamTimer => {
   if (!value || typeof value !== 'object') return false;
-  const { start, readingMinutes, writingMinutes } = value as Record<string, unknown>;
-  return [start, readingMinutes, writingMinutes].every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0);
+  const { startMinutes, startedAt, readingMinutes, writingMinutes } = value as Record<string, unknown>;
+  return [startMinutes, startedAt, readingMinutes, writingMinutes].every(
+    (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0,
+  );
 };
 
 const parse = (raw: string | null): ExamTimer | null => {
@@ -63,33 +70,39 @@ export function useExamTimer(namespace: string): ExamTimer | null {
   return parse(raw);
 }
 
-/** Which phase `now` falls in, with whole minutes left (rounded up). */
-export function examPhase(timer: ExamTimer, now: number): ExamPhase {
-  const writingStart = timer.start + timer.readingMinutes * MINUTE;
-  const end = writingStart + timer.writingMinutes * MINUTE;
-  const left = (until: number) => Math.ceil((until - now) / MINUTE);
-  if (now < timer.start) return { phase: 'before', minutesLeft: left(timer.start) };
-  if (now < writingStart) return { phase: 'reading', minutesLeft: left(writingStart) };
-  if (now < end) return { phase: 'writing', minutesLeft: left(end) };
-  return { phase: 'over' };
+export const formatClock = (minutesAfterMidnight: number) => {
+  const minutes = Math.floor(minutesAfterMidnight) % (24 * 60);
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+
+export function examState(timer: ExamTimer, now: number): ExamState {
+  const elapsed = Math.max(0, now - timer.startedAt);
+  const minutes = elapsed / MINUTE;
+  const phase =
+    minutes < timer.readingMinutes ? 'reading' : minutes < timer.readingMinutes + timer.writingMinutes ? 'writing' : 'over';
+  return { phase, clock: formatClock(timer.startMinutes + minutes), elapsed };
 }
 
-/** Current time, re-read once a minute (on the minute) and when the tab becomes visible. */
-export function useMinuteClock(enabled: boolean): number {
+/**
+ * Current time, re-read each time the mock clock ticks over a minute (and
+ * when the tab becomes visible again). Never re-renders more than once a minute.
+ */
+export function useExamNow(timer: ExamTimer | null): number {
   const [now, setNow] = useState(() => Date.now());
+  const startedAt = timer?.startedAt;
   useEffect(() => {
-    if (!enabled) return;
+    if (startedAt === undefined) return;
     let timeout: ReturnType<typeof setTimeout>;
     const tick = () => {
       const current = Date.now();
       setNow(current);
-      timeout = setTimeout(tick, MINUTE - (current % MINUTE) + 50);
+      const intoMinute = (((current - startedAt) % MINUTE) + MINUTE) % MINUTE;
+      timeout = setTimeout(tick, MINUTE - intoMinute + 50);
     };
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        clearTimeout(timeout);
-        tick();
-      }
+      if (document.visibilityState !== 'visible') return;
+      clearTimeout(timeout);
+      tick();
     };
     tick();
     document.addEventListener('visibilitychange', onVisible);
@@ -97,12 +110,6 @@ export function useMinuteClock(enabled: boolean): number {
       clearTimeout(timeout);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [enabled]);
+  }, [startedAt]);
   return now;
-}
-
-/** "47m" or "2h 05m". */
-export function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`;
 }

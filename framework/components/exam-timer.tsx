@@ -1,47 +1,62 @@
-// Mock-exam timer: <ExamTimerBadge> sits in the header while a timer is
-// active; <ExamTimerPage> (the /timer route) is the only place to set it.
+// Mock-exam clock: <ExamTimerBadge> shows the mock time in the header while an
+// exam is running; <ExamTimerPage> (the /timer route) is the only place to start it.
 // Framework-owned: eject with `qb reveal framework/components/exam-timer.tsx`.
 
-import { useEffect, useState, type FormEvent } from 'react';
-import { BookOpen, Clock, PenLine } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { BookOpen, PenLine } from 'lucide-react';
 import { useBank } from '../../core/config.tsx';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { examPhase, formatMinutes, setExamTimer, useExamTimer, useMinuteClock } from '../lib/exam-timer.ts';
+import { toast } from './ui/toast';
+import { examState, formatClock, MINUTE, setExamTimer, useExamNow, useExamTimer, type ExamTimer } from '../lib/exam-timer.ts';
 
-const icons = { before: Clock, reading: BookOpen, writing: PenLine } as const;
-const labels = { before: 'Starts in', reading: 'Reading time left', writing: 'Writing time left' } as const;
+/** Moments to announce, in minutes after Start. */
+const milestones = ({ readingMinutes: reading, writingMinutes: writing }: ExamTimer) => {
+  const end = reading + writing;
+  return [
+    ...(reading > 0 ? [{ at: reading, title: 'Reading time over' }] : []),
+    ...(writing > 30 ? [{ at: end - 30, title: '30 minutes remaining' }] : []),
+    ...(writing > 10 ? [{ at: end - 10, title: '10 minutes remaining' }] : []),
+    { at: end, title: 'Exam over' },
+  ];
+};
 
 export function ExamTimerBadge() {
   const { namespace } = useBank();
   const timer = useExamTimer(namespace);
-  const now = useMinuteClock(timer !== null);
-  if (!timer) return null;
-  const state = examPhase(timer, now);
-  if (state.phase === 'over') return null;
-  const Icon = icons[state.phase];
-  const time = formatMinutes(state.minutesLeft);
+  const now = useExamNow(timer);
+  const state = timer ? examState(timer, now) : null;
+
+  // Toast each milestone crossed since the last tick (not ones already past on load).
+  const last = useRef<{ startedAt: number; elapsed: number } | null>(null);
+  useEffect(() => {
+    if (!timer || !state) return;
+    const previous = last.current;
+    if (previous?.startedAt === timer.startedAt) {
+      for (const { at, title } of milestones(timer)) {
+        if (previous.elapsed < at * MINUTE && at * MINUTE <= state.elapsed) toast.add({ title });
+      }
+    }
+    last.current = { startedAt: timer.startedAt, elapsed: state.elapsed };
+  }, [timer?.startedAt, state?.elapsed]);
+
+  if (!state || state.phase === 'over') return null;
+  const Icon = state.phase === 'reading' ? BookOpen : PenLine;
   return (
-    <span className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-700" title={`${labels[state.phase]}: ${time}`}>
+    <span
+      className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-700"
+      title={state.phase === 'reading' ? 'Reading time' : 'Writing time'}
+    >
       <Icon aria-hidden="true" className="size-4" />
-      <span className="sr-only">{labels[state.phase]}: </span>
-      {time}
+      <span className="sr-only">{state.phase === 'reading' ? 'Reading time' : 'Writing time'}, mock exam time </span>
+      {state.clock}
     </span>
   );
 }
 
-const toTimeInput = (ms: number) => {
-  const date = new Date(ms);
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-/** Today at hh:mm local time, or tomorrow if an exam starting today would already be over. */
-const nextStart = (time: string, totalMinutes: number) => {
+const parseClock = (time: string) => {
   const [hours, minutes] = time.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours ?? 0, minutes ?? 0, 0, 0);
-  if (date.getTime() + totalMinutes * 60_000 <= Date.now()) date.setDate(date.getDate() + 1);
-  return date.getTime();
+  return (hours ?? 0) * 60 + (minutes ?? 0);
 };
 
 export function ExamTimerPage({
@@ -55,23 +70,28 @@ export function ExamTimerPage({
 }) {
   const { namespace } = useBank();
   const timer = useExamTimer(namespace);
-  const [start, setStart] = useState(() => (timer ? toTimeInput(timer.start) : defaultStart));
-  const [reading, setReading] = useState(String(timer?.readingMinutes ?? defaultReadingMinutes));
-  const [writing, setWriting] = useState(String(timer?.writingMinutes ?? defaultWritingMinutes));
+  const now = useExamNow(timer);
+  const running = timer !== null && examState(timer, now).phase !== 'over';
+  const [start, setStart] = useState(defaultStart);
+  const [reading, setReading] = useState(String(defaultReadingMinutes));
+  const [writing, setWriting] = useState(String(defaultWritingMinutes));
 
-  // Show the saved timer once it's read (after hydration, or when another tab changes it).
+  // Show the saved settings once they're read (after hydration, or when another tab changes them).
   useEffect(() => {
     if (!timer) return;
-    setStart(toTimeInput(timer.start));
+    setStart(formatClock(timer.startMinutes));
     setReading(String(timer.readingMinutes));
     setWriting(String(timer.writingMinutes));
-  }, [timer?.start, timer?.readingMinutes, timer?.writingMinutes]);
+  }, [timer?.startedAt]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const readingMinutes = Math.max(0, Number(reading) || 0);
-    const writingMinutes = Math.max(0, Number(writing) || 0);
-    setExamTimer(namespace, { start: nextStart(start, readingMinutes + writingMinutes), readingMinutes, writingMinutes });
+    setExamTimer(namespace, {
+      startMinutes: parseClock(start),
+      startedAt: Date.now(),
+      readingMinutes: Math.max(0, Number(reading) || 0),
+      writingMinutes: Math.max(0, Number(writing) || 0),
+    });
   };
 
   const field = 'grid gap-1.5 text-sm font-medium text-gray-700';
@@ -80,7 +100,7 @@ export function ExamTimerPage({
       <h1 className="m-0 text-3xl font-bold tracking-tight text-gray-900">Timer</h1>
       <form onSubmit={submit} className="grid gap-4">
         <label className={field}>
-          Start time
+          Exam start time
           <Input type="time" required value={start} onChange={(event) => setStart(event.target.value)} />
         </label>
         <label className={field}>
@@ -92,10 +112,10 @@ export function ExamTimerPage({
           <Input type="number" min={0} required value={writing} onChange={(event) => setWriting(event.target.value)} />
         </label>
         <div className="flex gap-2">
-          <Button type="submit">{timer ? 'Update' : 'Start'}</Button>
-          {timer && (
+          <Button type="submit">{running ? 'Restart' : 'Start'}</Button>
+          {running && (
             <Button type="button" variant="outline" onClick={() => setExamTimer(namespace, null)}>
-              Clear
+              Stop
             </Button>
           )}
         </div>

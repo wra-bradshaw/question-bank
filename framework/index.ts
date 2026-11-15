@@ -33,7 +33,8 @@ export {
   syncQuiz,
 } from './lib/quiz-storage.ts';
 export { getQuestionStatuses, setQuestionStatus } from './lib/question-status-storage.ts';
-export { examPhase, setExamTimer, useExamTimer } from './lib/exam-timer.ts';
-export type { ExamPhase, ExamTimer } from './lib/exam-timer.ts';
+export { examState, setExamTimer, useExamTimer } from './lib/exam-timer.ts';
+export type { ExamState, ExamTimer } from './lib/exam-timer.ts';
+export { Toaster, toast } from './components/ui/toast.tsx';
 export type { StorageTarget } from './lib/sync-client.ts';
 export { cn } from './lib/utils.ts';
