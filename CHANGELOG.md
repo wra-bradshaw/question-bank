@@ -1,5 +1,11 @@
 # question-bank-framework
 
+## 0.10.0
+
+### Minor Changes
+
+- [`7473f0e`](https://github.com/wra-bradshaw/question-bank/commit/7473f0e9b5f3ed1405624da7dc581ae905d1c5f1) Thanks [@wra-bradshaw](https://github.com/wra-bradshaw)! - Pause the mock-exam clock. `/timer` gains Pause/Resume buttons while an exam is running: pausing freezes the mock time (the header badge shows a pause icon and dims), and resuming carries on from the same time, so breaks don't eat into reading or writing time. Paused state is stored with the timer in localStorage, so it holds across reloads and tabs. Also exports `pauseExamTimer` and `resumeExamTimer`; `ExamTimer` gains an optional `pausedAt` and `ExamState` a `paused` flag.
+
 ## 0.9.0
 
 ### Minor Changes
